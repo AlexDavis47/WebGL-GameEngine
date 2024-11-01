@@ -82,9 +82,9 @@ window.onload = main;
 
 function main() {
     initView();
-    initModel();
     initController();
     initControls();
+    initModel();
     updateModel();
 }
 

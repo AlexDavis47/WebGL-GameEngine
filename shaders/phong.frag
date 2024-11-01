@@ -65,4 +65,5 @@ void main() {
     vec3 sumOfLights = scatteredLight + reflectedLight;
     vec3 rgb = min(sumOfLights, vec3(1.0));
     frag_color = vec4(rgb, color.a);
+    frag_color = vec4(1.0, 0.0, 0.0, 1.0);
 }
