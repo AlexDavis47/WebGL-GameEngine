@@ -18,7 +18,7 @@ let uLightDirectionLoc;
 let uLightIsDirectionalLoc;
 let uNumLightsLoc;
 
-let test;
+let parentCube;
 
 /**
  * Loads a GLSL shader file asynchronously
@@ -106,21 +106,20 @@ function setupCamera() {
  * Set up the initial scene objects
  */
 async function initObjects() {
+    let objText = await loadFile('objs/test.obj');
     // Create test cube
-    const cube = new Model3D(gl);
-    await cube.loadFromOBJ(await loadFile("objs/test.obj"));
+    parentCube = new Model3D(gl);
+    await parentCube.loadFromOBJ(objText);
+    parentCube.position = glMatrix.vec3.fromValues(0, 0, 0);
 
-    test = cube;
+    // Create child cube
+    const childCube = new Model3D(gl);
+    await childCube.loadFromOBJ(objText);
+    childCube.position = glMatrix.vec3.fromValues(2, 0, 0); // Offset from parent
 
-    const cube2 = new Model3D(gl);
-    await cube2.loadFromOBJ(await loadFile("objs/test.obj"));
-    cube.addChild(cube2);
-    cube2.scale = glMatrix.vec3.fromValues(0.5, 0.5, 0.5);
-    cube2.position = glMatrix.vec3.fromValues(2, 0, 0);
-
-    // Add to scene graph
-    root.addChild(cube);
-    root.addChild(cube2);
+    // Set up hierarchy
+    parentCube.addChild(childCube);
+    root.addChild(parentCube);
 }
 
 
@@ -147,8 +146,7 @@ function loadFile(url) {
  */
 function updateModel() {
 
-    const rotationSpeed = 0.01;
-    test.rotate([0, 1, 0], rotationSpeed);
+    parentCube.rotate(glMatrix.vec3.fromValues(0, 1, 0), 0.01);
 
     // Update scene graph
     if (root) {
