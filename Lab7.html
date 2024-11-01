@@ -1,0 +1,353 @@
+﻿<!--
+FileName:       Lab7.html
+Programmers:    Dan Cliburn, Alexander Davis, Maika West, Austin Medina
+Date:			10/30/2024
+Purpose:		This file defines the html code necessary to run our WebGL 2 program.
+I've made an attempt to separate the parts of the program using the Model-View-Controller
+design pattern. The model.js, view.js, and controller.js files define the code for those
+components respectively. I define the vertex and fragment shader code in this file.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Renderer</title>
+
+    <!-- load the css file -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- load the javascript files -->
+    <script src="abstracts/shape.js" defer></script>
+    <script src="lights/abstract_light.js" defer></script>
+    <script src="lights/directional_light.js" defer></script>
+    <script src="lights/point_light.js" defer></script>
+    <script src="abstracts/abstract_model.js" defer></script>
+    <script src="abstracts/abstract_object.js" defer></script>
+    <script src="abstracts/abstract_actor.js" defer></script>
+    <script src="models/model_cube.js" defer></script>
+    <script src="actors/actor_cube.js" defer></script>
+    <script src="model.js" defer></script>
+    <script src="view.js" defer></script>
+    <script src="controller.js" defer></script>
+    <script src="gl-matrix.js" defer></script>
+
+    <!-- Define the vertex and fragment shaders -->
+    <script type="shader-vertex" id="vshader">
+        #version 300 es //specifies that we want OpenGL ES 3.0
+        //This vertex shader is based on Example 7.8 on pages 377 and 378 of the OpenGL Programming
+        //Guide (8th edition) with some tweaks to support shininess as a vertex property. I also
+        //modified the code somewhat to make it closer to the Phong Reflection Model discussed in class.
+        //For lab 7 it has been modified to allow the eye position to move around the scene. Lighting
+        //calculations are done in "eye" coordinates, so position and normal must be calculated appropriately.
+
+        layout(location = 0) in vec4 vertexPosition;
+        layout(location = 1) in vec4 vertexColor;
+        layout(location = 2) in vec3 vertexNormal;
+        layout(location = 3) in float vertexShininess;
+
+        uniform mat4 modelMatrix;
+        uniform mat4 viewMatrix;
+        uniform mat4 projectionMatrix;
+
+        out vec4 position; //position of the vertex in "eye" coordinates
+        out vec4 color;
+        out vec3 normal; //orientation of the normal in "eye" coordinates
+        out float shininess;
+
+        void main()
+        {
+            //Assign the in variables (attributes) to out variables (varyings) so that
+            //they can be accessed in the fragment shader for lighting calculations.
+            position = viewMatrix * modelMatrix * vertexPosition; //position in "eye" coordinates
+            color = vertexColor;
+            //calculate the "normal matrix"
+            mat4 modelViewMatrix = viewMatrix * modelMatrix;
+            mat4 normalMatrix = transpose(inverse(modelViewMatrix));
+            vec4 n = normalMatrix * vec4(vertexNormal, 0.0);
+            normal = normalize(vec3(n.x, n.y, n.z)); //normalize just in case it is not a unit vector
+            shininess = vertexShininess;
+
+            //Here the input vertexPostion is multiplied by the model, view, and
+            //projection matrices to determine the final position of the vertex
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vertexPosition;
+        }
+    </script>
+
+    <script type="shader-fragment" id="fshader">
+        #version 300 es
+        precision highp float;
+
+        uniform mat4 viewMatrix;
+        uniform vec3 globalAmbientLight;
+        uniform vec4 uLightPosition[16];
+        uniform vec4 uLightColor[16];
+        uniform vec4 uLightDirection[16];
+        uniform bool uLightIsDirectional[16];
+        uniform int uNumLights;
+        uniform float constantAttenuation;
+        uniform float linearAttenuation;
+        uniform float quadraticAttenuation;
+
+        in vec4 position;
+        in vec4 color;
+        in vec3 normal;
+        in float shininess;
+
+        out vec4 frag_color;
+
+        void main() {
+            vec3 scatteredLight = globalAmbientLight * color.rgb;
+            vec3 reflectedLight = vec3(0.0);
+            vec3 surfaceSpecularColor = vec3(1.0);
+
+            for(int i = 0; i < 16; i++) {
+                if (i >= uNumLights) break;
+
+                vec3 I = uLightColor[i].rgb * uLightColor[i].a;
+                vec3 L;
+                float f;
+
+                if (!uLightIsDirectional[i]) {
+                    vec4 lightPos_eyeCoords = viewMatrix * uLightPosition[i];
+                    vec4 LTemp = lightPos_eyeCoords - position;
+                    L = vec3(LTemp.xyz);
+                    float d = length(L);
+                    L = normalize(L);
+
+                    float attenuationDenominator = constantAttenuation + linearAttenuation * d + quadraticAttenuation * d * d;
+                    f = attenuationDenominator < 0.001 ? 1.0 : 1.0 / attenuationDenominator;
+                } else {
+                    vec4 lightDir_eyeCoords = viewMatrix * uLightDirection[i];
+                    L = normalize(-vec3(lightDir_eyeCoords.xyz));
+                    f = 1.0;
+                }
+
+                float diffuseModifier = max(0.0, dot(normalize(normal), L));
+                float specularModifier = 0.0;
+
+                if (diffuseModifier > 0.001) {
+                    vec3 r = normalize(reflect(-L, normal));
+                    vec3 v = normalize(-position.xyz);
+                    float specular = pow(max(0.0, dot(r, v)), shininess);
+                    specularModifier = specular * (shininess / 100.0);
+                }
+
+                reflectedLight += f * (
+                    (I * color.rgb * diffuseModifier) +
+                    (I * surfaceSpecularColor * specularModifier * uLightColor[i].a)
+                );
+            }
+
+            vec3 sumOfLights = scatteredLight + reflectedLight;
+            vec3 rgb = min(sumOfLights, vec3(1.0));
+            frag_color = vec4(rgb, color.a);
+        }
+    </script>
+    <script src="lights/abstract_light.js"></script>
+</head>
+<body>
+<div class="container">
+    <div id="canvas-holder">
+        <canvas id="webgl-canvas"></canvas>
+    </div>
+
+    <div id="control-panel">
+        <div class="control-section">
+            <h2>Frame Rate</h2>
+            <div class="control-group">
+                <div class="slider-container">
+                    <div class="control-row">
+                        <span>Target FPS:</span>
+                        <span id="frameRateValue" class="slider-value">60</span>
+                    </div>
+                    <input type="range" id="frameRate" min="1" max="500" value="60">
+                    <div class="control-row">
+                        <span>Current FPS:</span>
+                        <span id="actualFrameRate" class="slider-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h2>Camera Settings</h2>
+            <div class="control-group">
+                <div class="slider-container">
+                    <div class="control-row">
+                        <span>Field of View:</span>
+                        <span id="fovValue" class="slider-value">60</span>
+                    </div>
+                    <input type="range" id="fov" min="30" max="120" value="60">
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="slider-container">
+                    <div class="control-row">
+                        <span>Camera Distance:</span>
+                        <span id="cameraDistanceValue" class="slider-value">2.0</span>
+                    </div>
+                    <input type="range" id="cameraDistance" min="0.1" max="10" value="2" step="0.1">
+                </div>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <h2>Material Properties</h2>
+            <div class="control-group">
+                <div class="slider-container">
+                    <div class="control-row">
+                        <span>Shininess:</span>
+                        <span id="shininessValue" class="slider-value">32</span>
+                    </div>
+                    <input type="range" id="shininess" min="1" max="100" value="32">
+                </div>
+            </div>
+        </div>
+        <div class="control-section">
+            <h2>Lighting</h2>
+            <div class="control-group">
+                <div class="control-row">
+                    <span>Global Ambient Light:</span>
+                    <input type="color" id="globalAmbientLight" value="#000000">
+                </div>
+                <div class="slider-container">
+                    <div class="control-row">
+                        <span>Global Ambient Light Intensity:</span>
+                        <span id="ambientLightIntensityValue" class="slider-value">1.0</span>
+                    </div>
+                    <input type="range" id="ambientLightIntensity" min="0" max="1" value="0.0" step="0.01">
+                </div>
+                <div class="control-row">
+                    <button id="addRandomPointLight">Add Random Point Light</button>
+                    <button id="addRandomDirectionalLight">Add Random Directional Light</button>
+                </div>
+                <div class="control-row">
+                    <span>Number of Lights:</span>
+                    <span id="numLights">0</span>
+                </div>
+                <div class="control-row">
+                    <button id="removeAllLights">Remove All Lights</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    let canvas;
+    let gl;
+
+    function initControls() {
+        // Frame rate control
+        const frameRateSlider = document.getElementById('frameRate');
+        const frameRateValue = document.getElementById('frameRateValue');
+        frameRateSlider.addEventListener('input', function() {
+            const value = this.value;
+            frameRateValue.textContent = value;
+            if (typeof setFrameRate === 'function') {
+                setFrameRate(parseInt(value));
+            }
+        });
+
+        // Shininess control
+        const shininessSlider = document.getElementById('shininess');
+        const shininessValue = document.getElementById('shininessValue');
+        shininessSlider.addEventListener('input', function() {
+            const value = this.value;
+            shininessValue.textContent = value;
+            if (typeof setModelsShininess === 'function') {
+                setModelsShininess(parseInt(value));
+            }
+        });
+
+        // Camera distance control
+        const distanceSlider = document.getElementById('cameraDistance');
+        const distanceValue = document.getElementById('cameraDistanceValue');
+        distanceSlider.addEventListener('input', function() {
+            currentCameraDistance = parseFloat(this.value);
+            distanceValue.textContent = currentCameraDistance.toFixed(1);
+            updateCamera();
+        });
+
+        // FOV control
+        const fovSlider = document.getElementById('fov');
+        const fovValue = document.getElementById('fovValue');
+        fovSlider.addEventListener('input', function() {
+            const degrees = parseInt(this.value);
+            fovValue.textContent = degrees;
+            currentFOV = (degrees * Math.PI) / 180;
+            updateProjectionMatrix();
+        });
+
+        // Global ambient light color control
+        const globalAmbientLightInput = document.getElementById('globalAmbientLight');
+        globalAmbientLightInput.addEventListener('input', function() {
+            const color = hexToRgb(this.value);
+            color[0] /= 255;
+            color[1] /= 255;
+            color[2] /= 255;
+            ambientLightColor = color;
+        });
+
+        // Light intensity control
+        const ambientLightIntensitySlider = document.getElementById('ambientLightIntensity');
+        const ambientLightIntensityValue = document.getElementById('ambientLightIntensityValue');
+        ambientLightIntensitySlider.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            ambientLightIntensityValue.textContent = value.toFixed(2);
+            ambientLightIntensity = value;
+        });
+
+        // Add random point light
+        const addRandomPointLightButton = document.getElementById('addRandomPointLight');
+        addRandomPointLightButton.addEventListener('click', function() {
+            addRandomPointLight();
+            updateNumLights();
+        });
+
+
+        // Remove all lights
+        const removeAllLightsButton = document.getElementById('removeAllLights');
+        removeAllLightsButton.addEventListener('click', function() {
+            removeAllLights();
+            updateNumLights();
+        });
+
+        // Add random directional light
+        const addRandomDirectionalLightButton = document.getElementById('addRandomDirectionalLight');
+        addRandomDirectionalLightButton.addEventListener('click', function() {
+            addRandomDirectionalLight();
+            updateNumLights();
+        });
+
+        // Update the number of lights
+        const numLights = document.getElementById('numLights');
+        function updateNumLights() {
+            numLights.textContent = lights.length;
+        }
+        updateNumLights();
+    }
+
+    window.onload = main;
+
+    function main() {
+        initView(); // Initialize canvas and WebGL context
+        initModel(); // Initialize WebGL program and shaders
+        initController(); // Initialize input handling
+        initControls(); // Initialize control panel
+        updateModel(); // Start the render loop
+    }
+    window.addEventListener('resize', function() {
+        if (canvas) {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            if (gl) {
+                gl.viewport(0, 0, canvas.width, canvas.height);
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
