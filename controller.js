@@ -51,22 +51,29 @@ function update(currentTime) {
     deltaTime = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
 
-    // Skip update if window lost focus or frame time is too large
-    if (!document.hasFocus() || deltaTime > 0.1) {
+    // Skip update if window lost focus
+    if (!document.hasFocus()) {
         deltaTime = 0;
         scheduleNextFrame();
         return;
     }
+    deltaTime *= 1
+
+    deltaTime = Math.max(0, Math.min(deltaTime, (1 / targetFPS) * 3)); // Clamp deltaTime to 0 if negative or target FPS in ms if too high
+
+    console.log(deltaTime);
 
     // Update input first
-    updateInput();  // From InputManager
     processInput(); // Process our game-specific inputs
 
     // Update game state
     updateModel();
 
-    // Calculate FPS
+    // Calculate average frame rate
     calculateAverageFrameRate();
+
+    // Update input last (IMPORTANT: isJustPressed and isJustReleased will not work if this is called first for some reason)
+    updateInput();
 
     // Schedule next frame
     scheduleNextFrame();
@@ -81,7 +88,7 @@ function scheduleNextFrame() {
 function calculateAverageFrameRate() {
     if (deltaTime === 0) return;
 
-    if (frameRateArray.length > 30) {
+    if (frameRateArray.length > targetFPS) {
         frameRateArray.shift();
     }
     frameRateArray.push(1 / deltaTime);
@@ -110,6 +117,7 @@ function stopAnimation() {
 
 // Light control functions
 function turnOffPointLights() {
+    console.log("Turning off point lights");
     for (let i = 0; i < lights.length; i++) {
         if (lights[i].isDirectional === false) {
             lights[i].setIntensity(0);
