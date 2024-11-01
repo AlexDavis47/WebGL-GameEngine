@@ -205,8 +205,8 @@ function initModel() {
 
     // Initialize shaders
     try {
-        const vertexShaderSource = document.getElementById('vshader').text.trim();
-        const fragmentShaderSource = document.getElementById('fshader').text.trim();
+        const vertexShaderSource = loadGLSLShaderFile("shaders/phong.vert")
+        const fragmentShaderSource = loadGLSLShaderFile("shaders/phong.frag")
         program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
         gl.useProgram(program);
     } catch (e) {
@@ -246,6 +246,15 @@ function initModel() {
     initLights();
     initObjects();
 }
+
+
+function loadGLSLShaderFile(filename) {
+    var request = new XMLHttpRequest();
+    request.open('GET', filename, false);
+    request.send();
+    return request.responseText;
+}
+
 
 /**
  * Adds an object to the collection of objects to be rendered.
