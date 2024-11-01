@@ -1,123 +1,114 @@
 //FileName:     controller.js
 //Programmer:   Dan Cliburn, Alexander Davis, Austin Medina, Maika West
+//Date:         10/30/2021
+//Description:  Contains code that helps the user interact with the program.
 
-let timer;
 let deltaTime = 0.0;
 let lastTime = 0.0;
-let frame_rate = 60;
+let targetFPS = 60;
 let frameRateArray = [];
+let animationFrameId = null;
 
-// Input variables
+// Input variables for motion
 let inputXModel = 0.0;
 let inputYModel = 0.0;
 let inputXLight = 0.0;
 let inputYLight = 0.0;
 
-let keys = {
-    left: false,
-    up: false,
-    right: false,
-    down: false,
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-    digit1: false,
-    digit2: false,
-    digit3: false,
-    digit4: false,
-};
-
-function checkKeyDown(event) {
-    if (event.keyCode === 37) keys.left = true;
-    if (event.keyCode === 38) keys.up = true;
-    if (event.keyCode === 39) keys.right = true;
-    if (event.keyCode === 40) keys.down = true;
-    if (event.keyCode === 87) keys.w = true;
-    if (event.keyCode === 65) keys.a = true;
-    if (event.keyCode === 83) keys.s = true;
-    if (event.keyCode === 68) keys.d = true;
-    if (event.keyCode === 49) keys.digit1 = true;
-    if (event.keyCode === 50) keys.digit2 = true;
-    if (event.keyCode === 51) keys.digit3 = true;
-    if (event.keyCode === 52) keys.digit4 = true;
-}
-
-function checkKeyUp(event) {
-    if (event.keyCode === 37) keys.left = false;
-    if (event.keyCode === 38) keys.up = false;
-    if (event.keyCode === 39) keys.right = false;
-    if (event.keyCode === 40) keys.down = false;
-    if (event.keyCode === 87) keys.w = false;
-    if (event.keyCode === 65) keys.a = false;
-    if (event.keyCode === 83) keys.s = false;
-    if (event.keyCode === 68) keys.d = false;
-    if (event.keyCode === 49) keys.digit1 = false;
-    if (event.keyCode === 50) keys.digit2 = false;
-    if (event.keyCode === 51) keys.digit3 = false;
-    if (event.keyCode === 52) keys.digit4 = false;
-}
-
-function updateInput() {
+function processInput() {
+    // Reset input values
     inputXModel = 0.0;
     inputYModel = 0.0;
-
-    if (keys.left) inputXModel -= 1.0;
-    if (keys.right) inputXModel += 1.0;
-    if (keys.up) inputYModel += 1.0;
-    if (keys.down) inputYModel -= 1.0;
-
     inputXLight = 0.0;
     inputYLight = 0.0;
 
-    if (keys.a) inputXLight -= 1.0;
-    if (keys.d) inputXLight += 1.0;
-    if (keys.w) inputYLight += 1.0;
-    if (keys.s) inputYLight -= 1.0;
+    // Model movement
+    if (isKeyPressed(Keys.LEFT)) inputXModel -= 1.0;
+    if (isKeyPressed(Keys.RIGHT)) inputXModel += 1.0;
+    if (isKeyPressed(Keys.UP)) inputYModel += 1.0;
+    if (isKeyPressed(Keys.DOWN)) inputYModel -= 1.0;
+
+    // Light movement
+    if (isKeyPressed(Keys.A)) inputXLight -= 1.0;
+    if (isKeyPressed(Keys.D)) inputXLight += 1.0;
+    if (isKeyPressed(Keys.W)) inputYLight += 1.0;
+    if (isKeyPressed(Keys.S)) inputYLight -= 1.0;
+
+    // Light toggles - only trigger on initial press
+    if (isKeyJustPressed(Keys.ONE)) turnOffPointLights();
+    if (isKeyJustPressed(Keys.TWO)) turnOnPointLights();
+    if (isKeyJustPressed(Keys.THREE)) turnOffDirectionalLights();
+    if (isKeyJustPressed(Keys.FOUR)) turnOnDirectionalLights();
 }
 
-function updateDeltaTime() {
-    deltaTime = (Date.now() - lastTime) / 1000;
-    lastTime = Date.now();
-}
-
-function update() {
-    updateDeltaTime();
-
-    if (!checkFocus() || deltaTime > 0.1) {
-        deltaTime = 0;
-        lastTime = Date.now();
+function update(currentTime) {
+    if (!lastTime) {
+        lastTime = currentTime;
+        scheduleNextFrame();
         return;
     }
 
-    if (keys.digit1) turnOffPointLights();
-    if (keys.digit2) turnOnPointLights();
-    if (keys.digit3) turnOffDirectionalLights();
-    if (keys.digit4) turnOnDirectionalLights();
+    deltaTime = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
 
+    // Skip update if window lost focus or frame time is too large
+    if (!document.hasFocus() || deltaTime > 0.1) {
+        deltaTime = 0;
+        scheduleNextFrame();
+        return;
+    }
 
-    updateInput();
+    // Update input first
+    updateInput();  // From InputManager
+    processInput(); // Process our game-specific inputs
+
+    // Update game state
     updateModel();
+
+    // Calculate FPS
     calculateAverageFrameRate();
+
+    // Schedule next frame
+    scheduleNextFrame();
 }
 
-function checkFocus() {
-    return document.hasFocus();
+function scheduleNextFrame() {
+    setTimeout(() => {
+        animationFrameId = requestAnimationFrame(update);
+    }, 1000 / targetFPS);
 }
 
 function calculateAverageFrameRate() {
+    if (deltaTime === 0) return;
+
     if (frameRateArray.length > 30) {
         frameRateArray.shift();
     }
     frameRateArray.push(1 / deltaTime);
-    let sum = 0;
-    for (let i = 0; i < frameRateArray.length; i++) {
-        sum += frameRateArray[i];
-    }
-    let averageFrameRate = sum / frameRateArray.length;
-    document.getElementById("actualFrameRate").innerHTML = Math.round(averageFrameRate);
+
+    const sum = frameRateArray.reduce((a, b) => a + b, 0);
+    const averageFrameRate = sum / frameRateArray.length;
+
+    document.getElementById("actualFrameRate").textContent = Math.round(averageFrameRate);
 }
 
+function setFrameRate(rate) {
+    targetFPS = rate;
+    frameRateArray = []; // Reset FPS history on rate change
+}
+
+function initController() {
+    animationFrameId = requestAnimationFrame(update);
+}
+
+function stopAnimation() {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+}
+
+// Light control functions
 function turnOffPointLights() {
     for (let i = 0; i < lights.length; i++) {
         if (lights[i].isDirectional === false) {
@@ -152,18 +143,4 @@ function turnOnDirectionalLights() {
         }
     }
     updateLightUniforms();
-}
-
-
-function setFrameRate(rate) {
-    frame_rate = rate;
-    clearInterval(timer);
-    frameRateArray = [];
-    timer = setInterval(update, (1 / frame_rate) * 1000);
-}
-
-function initController() {
-    setFrameRate(frame_rate);
-    window.onkeydown = checkKeyDown;
-    window.onkeyup = checkKeyUp;
 }

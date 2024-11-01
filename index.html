@@ -1,13 +1,4 @@
-﻿<!--
-FileName:       index.html
-Programmers:    Dan Cliburn, Alexander Davis, Maika West, Austin Medina
-Date:			10/30/2024
-Purpose:		This file defines the html code necessary to run our WebGL 2 program.
-I've made an attempt to separate the parts of the program using the Model-View-Controller
-design pattern. The model.js, view.js, and controller.js files define the code for those
-components respectively. I define the vertex and fragment shader code in this file.
--->
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -29,94 +20,109 @@ components respectively. I define the vertex and fragment shader code in this fi
     <script src="actors/actor_cube.js" defer></script>
     <script src="model.js" defer></script>
     <script src="view.js" defer></script>
+    <script src="input_manager.js" defer></script>
     <script src="controller.js" defer></script>
     <script src="gl-matrix.js" defer></script>
     <script src="lights/abstract_light.js"></script>
 </head>
 <body>
-<div class="container">
-    <div id="canvas-holder">
-        <canvas id="webgl-canvas"></canvas>
+<div class="app-container">
+    <!-- Canvas Section -->
+    <div class="canvas-wrapper">
+        <div id="canvas-holder">
+            <canvas id="webgl-canvas"></canvas>
+        </div>
     </div>
 
-    <div id="control-panel">
-        <div class="control-section">
-            <h2>Frame Rate</h2>
-            <div class="control-group">
-                <div class="slider-container">
-                    <div class="control-row">
-                        <span>Target FPS:</span>
-                        <span id="frameRateValue" class="slider-value">60</span>
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+        <div class="controls-scroll">
+            <!-- Frame Rate Section -->
+            <section class="control-section">
+                <h2>Frame Rate</h2>
+                <div class="control-group">
+                    <div class="slider-container">
+                        <div class="control-row">
+                            <span>Target FPS</span>
+                            <span id="frameRateValue" class="slider-value">60</span>
+                        </div>
+                        <input type="range" id="frameRate" min="1" max="144" value="60">
                     </div>
-                    <input type="range" id="frameRate" min="1" max="500" value="60">
                     <div class="control-row">
-                        <span>Current FPS:</span>
+                        <span>Current FPS</span>
                         <span id="actualFrameRate" class="slider-value">0</span>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <div class="control-section">
-            <h2>Camera Settings</h2>
-            <div class="control-group">
-                <div class="slider-container">
-                    <div class="control-row">
-                        <span>Field of View:</span>
-                        <span id="fovValue" class="slider-value">60</span>
+            <!-- Camera Settings Section -->
+            <section class="control-section">
+                <h2>Camera Settings</h2>
+                <div class="control-group">
+                    <div class="slider-container">
+                        <div class="control-row">
+                            <span>Field of View</span>
+                            <span id="fovValue" class="slider-value">60</span>
+                        </div>
+                        <input type="range" id="fov" min="30" max="120" value="60">
                     </div>
-                    <input type="range" id="fov" min="30" max="120" value="60">
                 </div>
-            </div>
-            <div class="control-group">
-                <div class="slider-container">
-                    <div class="control-row">
-                        <span>Camera Distance:</span>
-                        <span id="cameraDistanceValue" class="slider-value">2.0</span>
+                <div class="control-group">
+                    <div class="slider-container">
+                        <div class="control-row">
+                            <span>Camera Distance</span>
+                            <span id="cameraDistanceValue" class="slider-value">2.0</span>
+                        </div>
+                        <input type="range" id="cameraDistance" min="0.1" max="10" step="0.1" value="2.0">
                     </div>
-                    <input type="range" id="cameraDistance" min="0.1" max="10" value="2" step="0.1">
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <div class="control-section">
-            <h2>Material Properties</h2>
-            <div class="control-group">
-                <div class="slider-container">
-                    <div class="control-row">
-                        <span>Shininess:</span>
-                        <span id="shininessValue" class="slider-value">32</span>
+            <!-- Material Properties Section -->
+            <section class="control-section">
+                <h2>Material Properties</h2>
+                <div class="control-group">
+                    <div class="slider-container">
+                        <div class="control-row">
+                            <span>Shininess</span>
+                            <span id="shininessValue" class="slider-value">32</span>
+                        </div>
+                        <input type="range" id="shininess" min="1" max="128" value="32">
                     </div>
-                    <input type="range" id="shininess" min="1" max="100" value="32">
                 </div>
-            </div>
-        </div>
-        <div class="control-section">
-            <h2>Lighting</h2>
-            <div class="control-group">
-                <div class="control-row">
-                    <span>Global Ambient Light:</span>
-                    <input type="color" id="globalAmbientLight" value="#000000">
-                </div>
-                <div class="slider-container">
+            </section>
+
+            <!-- Lighting Section -->
+            <section class="control-section">
+                <h2>Lighting</h2>
+                <div class="control-group">
                     <div class="control-row">
-                        <span>Global Ambient Light Intensity:</span>
-                        <span id="ambientLightIntensityValue" class="slider-value">1.0</span>
+                        <span>Global Ambient Light</span>
                     </div>
-                    <input type="range" id="ambientLightIntensity" min="0" max="1" value="0.0" step="0.01">
+                    <div class="color-container">
+                        <div class="control-row">
+                            <span>Color</span>
+                            <input type="color" id="ambientLightColor" value="#ffffff">
+                        </div>
+                    </div>
+                    <div class="slider-container">
+                        <div class="control-row">
+                            <span>Intensity</span>
+                            <span id="ambientLightIntensityValue" class="slider-value">1.0</span>
+                        </div>
+                        <input type="range" id="ambientLightIntensity" min="0" max="2" step="0.1" value="1.0">
+                    </div>
+                    <div class="button-group">
+                        <button type="button" id="addRandomPointLight">Add Random Point Light</button>
+                        <button type="button" id="addRandomDirectionalLight">Add Random Directional Light</button>
+                    </div>
+                    <div class="control-row">
+                        <span>Number of Lights</span>
+                        <span id="numLights">0</span>
+                    </div>
+                    <button type="button" id="removeAllLights" class="remove-lights">Remove All Lights</button>
                 </div>
-                <div class="control-row">
-                    <button id="addRandomPointLight">Add Random Point Light</button>
-                    <button id="addRandomDirectionalLight">Add Random Directional Light</button>
-                </div>
-                <div class="control-row">
-                    <span>Number of Lights:</span>
-                    <span id="numLights">0</span>
-                </div>
-                <div class="control-row">
-                    <button id="removeAllLights">Remove All Lights</button>
-                </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>

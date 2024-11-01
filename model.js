@@ -71,7 +71,7 @@ function initLights() {
     quadraticAttenLoc = gl.getUniformLocation(program, "quadraticAttenuation");
 
     // Get the html color picker element
-    const colorPicker = document.getElementById("globalAmbientLight");
+    const colorPicker = document.getElementById("ambientLightColor");
     const ambientLightColor = hexToRgb(colorPicker.value);
 
     // Divide by 255 to get the color in the range [0, 1]

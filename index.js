@@ -1,27 +1,18 @@
-let canvas;
-let gl;
-
 function initControls() {
     // Frame rate control
     const frameRateSlider = document.getElementById('frameRate');
     const frameRateValue = document.getElementById('frameRateValue');
     frameRateSlider.addEventListener('input', function() {
-        const value = this.value;
-        frameRateValue.textContent = value;
-        if (typeof setFrameRate === 'function') {
-            setFrameRate(parseInt(value));
-        }
+        frameRateValue.textContent = this.value;
+        setFrameRate(parseInt(this.value));
     });
 
     // Shininess control
     const shininessSlider = document.getElementById('shininess');
     const shininessValue = document.getElementById('shininessValue');
     shininessSlider.addEventListener('input', function() {
-        const value = this.value;
-        shininessValue.textContent = value;
-        if (typeof setModelsShininess === 'function') {
-            setModelsShininess(parseInt(value));
-        }
+        shininessValue.textContent = this.value;
+        setModelsShininess(parseInt(this.value));
     });
 
     // Camera distance control
@@ -44,31 +35,34 @@ function initControls() {
     });
 
     // Global ambient light color control
-    const globalAmbientLightInput = document.getElementById('globalAmbientLight');
+    const globalAmbientLightInput = document.getElementById('ambientLightColor');
     globalAmbientLightInput.addEventListener('input', function() {
         const color = hexToRgb(this.value);
-        color[0] /= 255;
-        color[1] /= 255;
-        color[2] /= 255;
-        ambientLightColor = color;
+        ambientLightColor = color.map(c => c / 255);
     });
 
     // Light intensity control
     const ambientLightIntensitySlider = document.getElementById('ambientLightIntensity');
     const ambientLightIntensityValue = document.getElementById('ambientLightIntensityValue');
     ambientLightIntensitySlider.addEventListener('input', function() {
-        const value = parseFloat(this.value);
-        ambientLightIntensityValue.textContent = value.toFixed(2);
-        ambientLightIntensity = value;
+        const intensity = parseFloat(this.value);
+        ambientLightIntensityValue.textContent = intensity.toFixed(2);
+        ambientLightIntensity = intensity;
     });
 
     // Add random point light
-    const addRandomPointLightButton = document.getElementById('addRandomPointLight');
-    addRandomPointLightButton.addEventListener('click', function() {
+    const addPointLightButton = document.getElementById('addRandomPointLight');
+    addPointLightButton.addEventListener('click', function() {
         addRandomPointLight();
         updateNumLights();
     });
 
+    // Add random directional light
+    const addDirectionalLightButton = document.getElementById('addRandomDirectionalLight');
+    addDirectionalLightButton.addEventListener('click', function() {
+        addRandomDirectionalLight();
+        updateNumLights();
+    });
 
     // Remove all lights
     const removeAllLightsButton = document.getElementById('removeAllLights');
@@ -76,37 +70,27 @@ function initControls() {
         removeAllLights();
         updateNumLights();
     });
-
-    // Add random directional light
-    const addRandomDirectionalLightButton = document.getElementById('addRandomDirectionalLight');
-    addRandomDirectionalLightButton.addEventListener('click', function() {
-        addRandomDirectionalLight();
-        updateNumLights();
-    });
-
-    // Update the number of lights
-    const numLights = document.getElementById('numLights');
-    function updateNumLights() {
-        numLights.textContent = lights.length;
-    }
-    updateNumLights();
 }
 
+// Helper function to update the number of lights display
+function updateNumLights() {
+    document.getElementById('numLights').textContent = lights.length;
+}
+
+// Initialize everything when the window loads
 window.onload = main;
 
 function main() {
-    initView(); // Initialize canvas and WebGL context
-    initModel(); // Initialize WebGL program and shaders
-    initController(); // Initialize input handling
-    initControls(); // Initialize control panel
-    updateModel(); // Start the render loop
+    initView();
+    initModel();
+    initController();
+    initControls();
+    updateModel();
 }
+
+// Handle window resizing
 window.addEventListener('resize', function() {
     if (canvas) {
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-        if (gl) {
-            gl.viewport(0, 0, canvas.width, canvas.height);
-        }
+        resizeCanvas();
     }
 });
