@@ -1,4 +1,5 @@
 import Camera3D from "./camera3d.js";
+import Model3D from "./model3d.js";
 
 class FPSCamera extends Camera3D {
     constructor() {
@@ -17,6 +18,10 @@ class FPSCamera extends Camera3D {
         this.forward = glMatrix.vec3.create();
         this.right = glMatrix.vec3.create();
         this.up = glMatrix.vec3.fromValues(0, 1, 0);
+    }
+
+    init(gl) {
+        super.init(gl);
     }
 
     update(deltaTime) {

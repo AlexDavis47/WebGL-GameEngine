@@ -17,7 +17,10 @@ class Node3D extends Node {
     }
 
     updateMatrices() {
-        if (this.needsUpdate) {
+        // Always update if flagged or if parent has updated
+        const parentNeedsUpdate = this.parent instanceof Node3D && this.parent.needsUpdate;
+
+        if (this.needsUpdate || parentNeedsUpdate) {
             // Build local transform matrix
             glMatrix.mat4.fromRotationTranslationScale(
                 this.localMatrix,
@@ -26,14 +29,22 @@ class Node3D extends Node {
                 this.scale
             );
 
-            // Calculate world matrix
+            // Calculate world matrix by combining with parent's world matrix
             if (this.parent instanceof Node3D) {
                 glMatrix.mat4.multiply(this.worldMatrix, this.parent.worldMatrix, this.localMatrix);
             } else {
                 glMatrix.mat4.copy(this.worldMatrix, this.localMatrix);
             }
 
+            // Mark update complete
             this.needsUpdate = false;
+
+            // Force child updates when parent changes
+            for (const child of this.children.values()) {
+                if (child instanceof Node3D) {
+                    child.needsUpdate = true;
+                }
+            }
         }
     }
 
@@ -61,8 +72,35 @@ class Node3D extends Node {
         return this;
     }
 
-    translate(x, y, z) {
+    move(x, y, z) {
         glMatrix.vec3.add(this.position, this.position, [x, y, z]);
+        this.needsUpdate = true;
+        return this;
+    }
+
+    // You could also add convenience methods for single-axis movement
+    moveX(amount) {
+        this.position[0] += amount;
+        this.needsUpdate = true;
+        return this;
+    }
+
+    moveY(amount) {
+        this.position[1] += amount;
+        this.needsUpdate = true;
+        return this;
+    }
+
+    moveZ(amount) {
+        this.position[2] += amount;
+        this.needsUpdate = true;
+        return this;
+    }
+
+    rotate(x, y, z) {
+        const rotation = glMatrix.quat.create();
+        glMatrix.quat.fromEuler(rotation, x * 180 / Math.PI, y * 180 / Math.PI, z * 180 / Math.PI);
+        glMatrix.quat.multiply(this.rotation, this.rotation, rotation);
         this.needsUpdate = true;
         return this;
     }
@@ -86,6 +124,12 @@ class Node3D extends Node {
     }
 
     // Utility methods
+    getWorldPosition(out = glMatrix.vec3.create()) {
+        const pos = glMatrix.vec3.fromValues(0, 0, 0);
+        glMatrix.vec3.transformMat4(pos, pos, this.worldMatrix);
+        return pos;
+    }
+
     getForwardVector(out = glMatrix.vec3.create()) {
         const forward = glMatrix.vec3.fromValues(0, 0, -1);
         glMatrix.vec3.transformQuat(out, forward, this.rotation);
