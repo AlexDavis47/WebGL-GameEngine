@@ -229,9 +229,11 @@ class ShaderManager {
     }
 
     setUniforms(program, camera, model, scene) {
-        // Set all uniform types using our helper methods
+        // Basic transforms
         this.setTransformUniforms(program, camera, model);
+        // Lighting
         this.setLightUniforms(program, scene);
+        // Material
         this.setMaterialUniforms(program, model.material);
     }
 
@@ -239,6 +241,7 @@ class ShaderManager {
         const { uniforms } = program;
         const gl = this.gl;
 
+        // Use proper matrix getters from new Node3D system
         gl.uniformMatrix4fv(uniforms.get('u_worldMatrix'), false, model.worldMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_viewMatrix'), false, camera.viewMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_projectionMatrix'), false, camera.projectionMatrix);
@@ -249,17 +252,8 @@ class ShaderManager {
         glMatrix.mat4.transpose(normalMatrix, normalMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_normalMatrix'), false, normalMatrix);
 
-        // Convert camera position to Float32Array if it isn't already
-        let cameraPos;
-        if (camera.position instanceof Float32Array) {
-            cameraPos = camera.position;
-        } else if (Array.isArray(camera.position)) {
-            cameraPos = new Float32Array(camera.position);
-        } else {
-            // If it's a vec3 from glMatrix, convert it to Float32Array
-            cameraPos = new Float32Array(camera.worldPosition || camera.position);
-        }
-
+        // Use proper world position from Node3D
+        const cameraPos = new Float32Array(camera.getPositionWorld());
         gl.uniform3fv(uniforms.get('u_cameraPosition'), cameraPos);
     }
 
@@ -268,27 +262,40 @@ class ShaderManager {
         const gl = this.gl;
 
         // Get all lights in the scene
-        const lights = scene.getAllNodesOfType(Light);
-        gl.uniform1i(uniforms.get('u_numLights'), Math.min(lights.length, 8));
+        const lights = scene.findByType(Light);
+        const numLights = Math.min(lights.length, 8);
+
+        if (uniforms.get('u_numLights')) {
+            gl.uniform1i(uniforms.get('u_numLights'), numLights);
+        }
 
         // Set each light's uniforms
         lights.slice(0, 8).forEach((light, index) => {
             const lightData = light.getShaderLight();
             const prefix = `u_lights[${index}]`;
 
-            // Ensure all vector data is Float32Array
-            const position = new Float32Array(lightData.position);
-            const direction = new Float32Array(lightData.direction);
-            const color = new Float32Array(lightData.color);
-
-            gl.uniform1i(uniforms.get(`${prefix}.type`), lightData.type);
-            gl.uniform3fv(uniforms.get(`${prefix}.position`), position);
-            gl.uniform3fv(uniforms.get(`${prefix}.direction`), direction);
-            gl.uniform3fv(uniforms.get(`${prefix}.color`), color);
-            gl.uniform1f(uniforms.get(`${prefix}.intensity`), lightData.intensity);
-            gl.uniform1f(uniforms.get(`${prefix}.range`), lightData.range);
+            // Only set uniforms if they exist in the shader
+            if (uniforms.get(`${prefix}.type`)) {
+                gl.uniform1i(uniforms.get(`${prefix}.type`), lightData.type);
+            }
+            if (uniforms.get(`${prefix}.position`)) {
+                gl.uniform3fv(uniforms.get(`${prefix}.position`), new Float32Array(light.getPositionWorld()));
+            }
+            if (uniforms.get(`${prefix}.direction`)) {
+                gl.uniform3fv(uniforms.get(`${prefix}.direction`), new Float32Array(light.getWorldForwardVector()));
+            }
+            if (uniforms.get(`${prefix}.color`)) {
+                gl.uniform3fv(uniforms.get(`${prefix}.color`), new Float32Array(lightData.color));
+            }
+            if (uniforms.get(`${prefix}.intensity`)) {
+                gl.uniform1f(uniforms.get(`${prefix}.intensity`), lightData.intensity);
+            }
+            if (uniforms.get(`${prefix}.range`)) {
+                gl.uniform1f(uniforms.get(`${prefix}.range`), lightData.range);
+            }
         });
     }
+
 
     setMaterialUniforms(program, material) {
         const { uniforms } = program;

@@ -1,88 +1,257 @@
 class Node {
     constructor() {
-        this.children = new Map(); // Using Map for O(1) lookups by ID
+        this.children = new Map();
         this.parent = null;
-        this.id = crypto.randomUUID(); // Unique identifier for each node
-        this.name = "Node"; // Default name, can be changed
-        this.enabled = true;
-        this.initialized = false;
+        this.id = crypto.randomUUID();
+        this.name = "Node";
+        this._enabled = true;
+        this._initialized = false;
+        this._markedForDeletion = false;
+        this._deferredOperations = [];
+    }
+
+    // Lifecycle properties
+    get enabled() {
+        return this._enabled && (!this.parent || this.parent.enabled);
+    }
+
+    get initialized() {
+        return this._initialized;
+    }
+
+    get isDestroyed() {
+        return this._markedForDeletion;
     }
 
     // Lifecycle methods
     async init(gl) {
-        if (!this.enabled || this.initialized) return;
+        if (!this._enabled || this._initialized || this._markedForDeletion) return;
 
-        // Initialize self first (if there's any specific initialization logic)
-        await this.onInit(gl);
+        try {
+            // Initialize self first
+            await this.onInit(gl);
 
-        // Initialize all children
-        const childInitPromises = Array.from(this.children.values()).map(child => child.init(gl));
-        await Promise.all(childInitPromises);
+            // Initialize all children
+            const childInitPromises = Array.from(this.children.values())
+                .filter(child => !child.isDestroyed)
+                .map(child => child.init(gl));
 
-        console.log(`Node initialized: ${this.name}`);
-        this.initialized = true;
+            await Promise.all(childInitPromises);
+
+            this._initialized = true;
+            this.processDeferredOperations();
+        } catch (error) {
+            console.error(`Failed to initialize node ${this.name}:`, error);
+            throw error;
+        }
     }
 
     async onInit(gl) {
-        // Placeholder for custom initialization
+        // Override in derived classes
     }
 
     update(deltaTime) {
-        if (!this.enabled || !this.initialized) return;
+        if (!this.enabled || !this._initialized || this._markedForDeletion) return;
 
-        // Update all children
-        for (const child of this.children.values()) {
-            child.update(deltaTime);
-        }
+        this.processDeferredOperations();
+
+        // Pre-update hook
+        this.onPreUpdate(deltaTime);
+
+        // Update children (create new array to allow for modifications during iteration)
+        [...this.children.values()]
+            .filter(child => !child.isDestroyed)
+            .forEach(child => child.update(deltaTime));
+
+        // Post-update hook
+        this.onPostUpdate(deltaTime);
+    }
+
+    onPreUpdate(deltaTime) {
+        // Override in derived classes
+    }
+
+    onPostUpdate(deltaTime) {
+        // Override in derived classes
     }
 
     render(gl) {
-        if (!this.enabled) return;
+        if (!this.enabled || this._markedForDeletion) return;
 
-        // Render all children
+        // Pre-render hook
+        this.onPreRender(gl);
+
+        // Render children
         for (const child of this.children.values()) {
-            child.render(gl);
+            if (!child.isDestroyed) {
+                child.render(gl);
+            }
         }
+
+        // Post-render hook
+        this.onPostRender(gl);
     }
 
-    cleanup() {
-        // Cleanup all children
+    onPreRender(gl) {
+        // Override in derived classes
+    }
+
+    onPostRender(gl) {
+        // Override in derived classes
+    }
+
+    // Node lifecycle management
+    destroy() {
+        if (this._markedForDeletion) return;
+
+        this._markedForDeletion = true;
+
+        // Destroy all children
         for (const child of this.children.values()) {
-            child.cleanup();
+            child.destroy();
         }
+
+        // Clean up resources
+        this.onDestroy();
+
+        // Remove from parent
+        if (this.parent) {
+            this.parent.removeChild(this);
+        }
+
         this.children.clear();
+    }
+
+    onDestroy() {
+        // Override in derived classes to clean up resources
+    }
+
+    // Deferred operations system
+    deferOperation(operation) {
+        this._deferredOperations.push(operation);
+    }
+
+    processDeferredOperations() {
+        while (this._deferredOperations.length > 0) {
+            const operation = this._deferredOperations.shift();
+            operation();
+        }
     }
 
     // Node hierarchy management
     addChild(node) {
+        if (this._markedForDeletion || node.isDestroyed) return this;
+
+        // If we're in the middle of an update/render cycle, defer the addition
+        if (this.initialized) {
+            this.deferOperation(() => this._addChild(node));
+        } else {
+            this._addChild(node);
+        }
+        return this;
+    }
+
+    _addChild(node) {
         if (node.parent) {
             node.parent.removeChild(node);
         }
         node.parent = this;
         this.children.set(node.id, node);
-        return node; // Allow for method chaining
+
+        // Initialize the child if parent is already initialized
+        if (this.initialized && !node.initialized) {
+            node.init(this.getRootContext());
+        }
     }
 
     removeChild(node) {
+        if (this._markedForDeletion) return this;
+
+        if (this.initialized) {
+            this.deferOperation(() => this._removeChild(node));
+        } else {
+            this._removeChild(node);
+        }
+        return this;
+    }
+
+    _removeChild(node) {
         if (this.children.has(node.id)) {
             node.parent = null;
             this.children.delete(node.id);
         }
-        return node; // Allow for method chaining
     }
 
-    getChild(id) {
-        return this.children.get(id);
+    // Tree traversal methods
+    traverse(callback) {
+        if (this._markedForDeletion) return;
+
+        callback(this);
+        for (const child of this.children.values()) {
+            if (!child.isDestroyed) {
+                child.traverse(callback);
+            }
+        }
     }
 
-    // Utility methods
+    traverseAncestors(callback) {
+        if (this.parent) {
+            callback(this.parent);
+            this.parent.traverseAncestors(callback);
+        }
+    }
+
+    // Node queries
+    findByName(name) {
+        if (this._markedForDeletion) return null;
+        if (this.name === name) return this;
+
+        for (const child of this.children.values()) {
+            if (!child.isDestroyed) {
+                const found = child.findByName(name);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    findByType(type) {
+        const results = [];
+        this.traverse(node => {
+            if (node instanceof type) {
+                results.push(node);
+            }
+        });
+        return results;
+    }
+
+    findAncestorByType(type) {
+        let current = this.parent;
+        while (current) {
+            if (current instanceof type) return current;
+            current = current.parent;
+        }
+        return null;
+    }
+
+    getRootNode() {
+        let current = this;
+        while (current.parent) {
+            current = current.parent;
+        }
+        return current;
+    }
+
+    getRootContext() {
+        // Traverse up to find the root's GL context
+        const root = this.getRootNode();
+        return root?.gl || null;
+    }
+
+    // State management
     setEnabled(enabled) {
-        this.enabled = enabled;
+        this._enabled = enabled;
         return this;
-    }
-
-    isEnabled() {
-        return this.enabled;
     }
 
     setName(name) {
@@ -90,25 +259,14 @@ class Node {
         return this;
     }
 
-    getName() {
-        return this.name;
-    }
-
-    // Tree traversal methods
-    traverse(callback) {
-        callback(this);
+    // Debug utilities
+    printTree(indent = '') {
+        console.log(`${indent}${this.name} (${this.constructor.name}) [${this.id}]`);
         for (const child of this.children.values()) {
-            child.traverse(callback);
+            if (!child.isDestroyed) {
+                child.printTree(indent + '  ');
+            }
         }
-    }
-
-    findByName(name) {
-        if (this.name === name) return this;
-        for (const child of this.children.values()) {
-            const found = child.findByName(name);
-            if (found) return found;
-        }
-        return null;
     }
 }
 

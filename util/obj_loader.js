@@ -102,13 +102,6 @@ class OBJLoader {
             }
         }
 
-        // Debug output
-        console.log('Parsed OBJ:', {
-            vertexCount: positions.length / 3,
-            triangleCount: indices.length / 3,
-            hasUVs: texcoords.length > 0,
-            hasNormals: normals.length > 0
-        });
 
         return {
             positions: positions,

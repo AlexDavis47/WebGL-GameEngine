@@ -76,15 +76,15 @@ function isKeyJustReleased(keyCode) {
     return keyStates.get(keyCode) !== true && previousKeyStates.get(keyCode) === true;
 }
 
-function isMouseButtonDown(button) {
+function isMouseButtonPressed(button) {
     return mouseStates.get(button) === true;
 }
 
-function isMouseButtonPressed(button) {
+function isMouseButtonJustPressed(button) {
     return mouseStates.get(button) === true && previousMouseStates.get(button) !== true;
 }
 
-function isMouseButtonReleased(button) {
+function isMouseButtonJustReleased(button) {
     return mouseStates.get(button) !== true && previousMouseStates.get(button) === true;
 }
 

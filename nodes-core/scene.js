@@ -1,70 +1,161 @@
 import Node from './node.js';
+import Camera3D from './camera3d.js';
 
 class Scene extends Node {
     constructor() {
         super();
         this.name = "Scene";
 
-        // Scene-specific properties
-        this.ambientLight = [0.1, 0.1, 0.1]; // Default ambient light
-        this.clearColor = [0.0, 0.0, 0.0, 1.0]; // Default background color
-        this.activeCamera = null;
+        // Core scene properties
+        this._ambientLight = [0.1, 0.1, 0.1];
+        this._clearColor = [0.0, 0.0, 0.0, 1.0];
+        this._activeCamera = null;
+        this._gl = null;
+
+        // Scene state
+        this._renderingEnabled = true;
+        this._physicsEnabled = true;
+        this._debugMode = false;
     }
 
-    init(gl) {
-        // Set scene-specific GL state
-        gl.clearColor(...this.clearColor);
+    // Property accessors
+    get ambientLight() {
+        return [...this._ambientLight];
+    }
+
+    get clearColor() {
+        return [...this._clearColor];
+    }
+
+    get activeCamera() {
+        return this._activeCamera;
+    }
+
+    // Scene initialization
+    async init(gl) {
+        if (!gl) {
+            throw new Error("Scene requires a valid WebGL context for initialization");
+        }
+
+        this._gl = gl;
+        this.setupGLState();
+
+        // Find first camera if none is active
+        if (!this._activeCamera) {
+            const camera = this.findByType(Camera3D)[0];
+            if (camera) {
+                this.setActiveCamera(camera);
+            }
+        }
+
+        // Initialize all nodes in the scene
+        await super.init(gl);
+    }
+
+    setupGLState() {
+        const gl = this._gl;
+
+        // Set initial GL state
+        gl.clearColor(...this._clearColor);
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
 
-        // Initialize all nodes-core in the scene
-        super.init(gl);
+        // Enable alpha blending
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
 
     update(deltaTime) {
-        // Update input state at the start of each frame
-        updateInput(); // From your input manager
-
-        // Update all nodes-core in the scene
+        if (!this._physicsEnabled) return;
         super.update(deltaTime);
+
+        // Update input last
+        if (typeof updateInput === 'function') {
+            updateInput();
+        }
     }
 
     render(gl) {
-        // Clear the canvas
+        if (!this._renderingEnabled) return;
+
+        // Clear buffers
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // Render all nodes-core in the scene
+        // Ensure we have a camera
+        if (!this._activeCamera) {
+            console.warn('Scene has no active camera');
+            return;
+        }
+
+        // Update view if camera changed
+        this._activeCamera.updateViewMatrix();
+
+        // Render all nodes in the scene
         super.render(gl);
     }
 
-    setClearColor(r, g, b, a = 1.0) {
-        this.clearColor = [r, g, b, a];
+    // Scene management
+    setActiveCamera(camera) {
+        if (!(camera instanceof Camera3D)) {
+            throw new Error('Active camera must be an instance of Camera3D');
+        }
+
+        this._activeCamera = camera;
+
+        // Ensure camera is in the scene
+        if (!this.contains(camera)) {
+            this.addChild(camera);
+        }
+
         return this;
     }
 
-    // In scene.js
-    getAllNodesOfType(type) {
-        const nodes = [];
-        this.traverse(node => {
-            // Check if node is an instance of the type we're looking for
-            if (node instanceof type) {
-                nodes.push(node);
-            }
-        });
-        return nodes;
+    setClearColor(r, g, b, a = 1.0) {
+        this._clearColor = [r, g, b, a];
+        if (this._gl) {
+            this._gl.clearColor(r, g, b, a);
+        }
+        return this;
     }
 
+    setAmbientLight(r, g, b) {
+        this._ambientLight = [r, g, b];
+        return this;
+    }
 
-    // Helper method to find the first node of a specific type
-    getFirstNodeOfType(typeName) {
-        let foundNode = null;
-        this.traverse(node => {
-            if (!foundNode && node.constructor.name === typeName) {
-                foundNode = node;
-            }
+    // Scene state management
+    enableRendering(enabled = true) {
+        this._renderingEnabled = enabled;
+        return this;
+    }
+
+    enablePhysics(enabled = true) {
+        this._physicsEnabled = enabled;
+        return this;
+    }
+
+    enableDebug(enabled = true) {
+        this._debugMode = enabled;
+        return this;
+    }
+
+    // Node containment check
+    contains(node) {
+        let found = false;
+        this.traverse(n => {
+            if (n === node) found = true;
         });
-        return foundNode;
+        return found;
+    }
+
+    // Resource cleanup
+    onDestroy() {
+        // Clean up GL resources if needed
+        this._gl = null;
+        this._activeCamera = null;
+
+        super.onDestroy();
     }
 }
 

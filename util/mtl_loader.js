@@ -23,7 +23,6 @@ class MTLLoader {
                         // Get just the filename from the path
                         const textureName = tokens[1].split('\\').pop().split('/').pop();
                         const fullPath = basePath + textureName;
-                        console.log('Loading texture from:', fullPath); // Debug log
                         try {
                             currentMaterial.diffuseMap = await MTLLoader.loadTexture(fullPath);
                         } catch (error) {
@@ -52,7 +51,6 @@ class MTLLoader {
             const image = new Image();
 
             image.onload = () => {
-                console.log('Texture loaded successfully:', url); // Debug log
                 resolve(image);
             };
 

@@ -5,185 +5,223 @@ import { defaultVertexShader, defaultFragmentShader } from './default_shaders.js
 class Game {
     constructor(options = {}) {
         // Canvas setup
-        this.canvas = document.getElementById('gameCanvas');
-        this.gl = null;
+        this._canvas = document.getElementById('gameCanvas');
+        this._gl = null;
 
         // Scene management
-        this.activeScene = null;
-        this.shaderManager = null;
+        this._activeScene = null;
+        this._shaderManager = null;
 
         // Game state
-        this.isRunning = false;
-        this.isPaused = false;
+        this._isRunning = false;
+        this._isPaused = false;
 
         // Timing
-        this.lastFrameTime = 0;
-        this.targetFPS = options.targetFPS || 120; // This is the default FPS value
-        this.frameRateUnlocked = true;
-        this.frameInterval = 1000 / this.targetFPS;
-        this.accumulator = 0;
+        this._lastFrameTime = 0;
+        this._targetFPS = options.targetFPS || 60;
+        this._fixedTimeStep = 1 / this._targetFPS;
+        this._maxFrameTime = this._fixedTimeStep * 5; // Prevent spiral of death
+        this._accumulator = 0;
 
         // Resolution
-        this.targetAspectRatio = options.aspectRatio || 16/9;
-        this.pixelsPerUnit = options.pixelsPerUnit || 100; // For example, if you move by 1 unit, you move by 100 pixels (default)
+        this._targetAspectRatio = options.aspectRatio || 16/9;
+        this._pixelsPerUnit = options.pixelsPerUnit || 100;
 
         this.init();
     }
 
     init() {
         // Initialize WebGL context
-        this.gl = this.canvas.getContext('webgl2');
-        if (!this.gl) {
+        this._gl = this._canvas.getContext('webgl2');
+        if (!this._gl) {
             console.error('WebGL2 not supported');
             return;
         }
 
-        // Initialize shader manager and create default shader
-        this.shaderManager = new ShaderManager(this.gl);
-        this.gl.shaderManager = this.shaderManager;
-        const defaultProgram = this.shaderManager.createProgram(
+        // Initialize shader manager
+        this.initializeShaderManager();
+
+        // Setup GL state
+        this.setupGLState();
+
+        // Setup window events
+        this.setupEvents();
+
+        // Do initial resize
+        this.resizeCanvas();  // Add this line before scene creation
+
+        // Create and setup initial scene
+        this.createInitialScene();
+
+        // Start game loop
+        this._isRunning = true;
+        this._lastFrameTime = performance.now();
+        requestAnimationFrame(this.gameLoop.bind(this));
+    }
+
+    initializeShaderManager() {
+        this._shaderManager = new ShaderManager(this._gl);
+        this._gl.shaderManager = this._shaderManager;
+        const defaultProgram = this._shaderManager.createProgram(
             'default',
             defaultVertexShader,
             defaultFragmentShader
         );
-        this.shaderManager.setDefaultProgram('default');
-        this.gl.defaultProgram = defaultProgram;
+        this._shaderManager.setDefaultProgram('default');
+        this._gl.defaultProgram = defaultProgram;
+    }
 
-        // Set clear color to black
-        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    setupGLState() {
+        const gl = this._gl;
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+    }
 
-        // Enable depth testing
-        this.gl.enable(this.gl.DEPTH_TEST);
-        this.gl.depthFunc(this.gl.LEQUAL);
+    setupEvents() {
+        window.addEventListener('resize', this.onWindowResize.bind(this));
+    }
 
-        // Set up resize handling
-        this.resizeCanvas();
-        window.addEventListener('resize', () => this.resizeCanvas());
-
-        // Create and set up test scene
+    createInitialScene() {
         const scene = new TestScene();
         this.setScene(scene);
+    }
 
-        // Start game loop
-        this.isRunning = true;
-        requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
+    onWindowResize() {
+        this.resizeCanvas();
     }
 
     resizeCanvas() {
         const containerWidth = window.innerWidth;
         const containerHeight = window.innerHeight;
+        const pixelRatio = window.devicePixelRatio || 1;
 
-        // Calculate the dimensions that maintain our target aspect ratio
-        let width, height;
+        // Use container dimensions directly for canvas resolution
+        this._canvas.width = containerWidth * pixelRatio;
+        this._canvas.height = containerHeight * pixelRatio;
+
+        // Set style size to container dimensions
+        this._canvas.style.width = `${containerWidth}px`;
+        this._canvas.style.height = `${containerHeight}px`;
+
+        // Calculate viewport dimensions to maintain aspect ratio
+        let viewportWidth, viewportHeight;
         const containerAspectRatio = containerWidth / containerHeight;
 
-        if (containerAspectRatio > this.targetAspectRatio) {
-            // Container is wider than target ratio - height determines size
-            height = containerHeight;
-            width = height * this.targetAspectRatio;
+        if (containerAspectRatio > this._targetAspectRatio) {
+            // Container is wider - fit to height
+            viewportHeight = this._canvas.height;
+            viewportWidth = viewportHeight * this._targetAspectRatio;
         } else {
-            // Container is taller than target ratio - width determines size
-            width = containerWidth;
-            height = width / this.targetAspectRatio;
+            // Container is taller - fit to width
+            viewportWidth = this._canvas.width;
+            viewportHeight = viewportWidth / this._targetAspectRatio;
         }
 
-        // Update canvas style for display size
-        this.canvas.style.width = `${width}px`;
-        this.canvas.style.height = `${height}px`;
+        // Center the viewport
+        const viewportX = (this._canvas.width - viewportWidth) / 2;
+        const viewportY = (this._canvas.height - viewportHeight) / 2;
 
-        // Center the canvas
-        this.canvas.style.position = 'absolute';
-        this.canvas.style.left = `${(containerWidth - width) / 2}px`;
-        this.canvas.style.top = `${(containerHeight - height) / 2}px`;
+        // Set GL viewport
+        this._gl.viewport(viewportX, viewportY, viewportWidth, viewportHeight);
 
-        // Set the canvas's internal resolution
-        const pixelRatio = window.devicePixelRatio || 1;
-        this.canvas.width = width * pixelRatio;
-        this.canvas.height = height * pixelRatio;
-
-        // Update WebGL viewport
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-
-        // Notify active scene of resize (if it has a camera that needs updating)
-        if (this.activeScene && this.activeScene.activeCamera) {
-            this.activeScene.activeCamera.updateProjectionMatrix(this.gl);
+        // Update camera if it exists
+        if (this._activeScene?.activeCamera) {
+            this._activeScene.activeCamera.updateProjectionMatrix(this._gl);
         }
     }
 
     gameLoop(currentTime) {
-        if (!this.isRunning) return;
+        if (!this._isRunning) return;
 
-        // Calculate frame delta and update accumulator
-        let deltaTime = currentTime - this.lastFrameTime;
-        let fixedDeltaTime = this.frameInterval / 1000;
-        this.accumulator += deltaTime;
+        // Calculate frame time and clamp it
+        let frameTime = (currentTime - this._lastFrameTime) / 1000;
+        frameTime = Math.min(frameTime, this._maxFrameTime);
 
-        // Update game at fixed time steps
-        while (this.accumulator >= this.frameInterval) {
-            // Convert from milliseconds to seconds, makes more sense to define values in terms
-            // of seconds (e.g. velocity is units per second, not units per millisecond)
-            fixedDeltaTime = this.frameInterval / 1000;
+        this._accumulator += frameTime;
 
-            if (!this.isPaused) {
-                if (this.activeScene) {
-                    this.activeScene.update(fixedDeltaTime);
-                }
+        // Update at fixed time step
+        while (this._accumulator >= this._fixedTimeStep) {
+            if (!this._isPaused && this._activeScene) {
+                this._activeScene.update(this._fixedTimeStep);
             }
-
-            this.accumulator -= this.frameInterval;
+            this._accumulator -= this._fixedTimeStep;
         }
 
-        // Render at screen refresh rate
-        if (this.activeScene) {
-            this.activeScene.render(this.gl);
+        // Render
+        if (this._activeScene) {
+            this._activeScene.render(this._gl);
         }
 
-        this.lastFrameTime = currentTime;
-        requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
+        this._lastFrameTime = currentTime;
+        requestAnimationFrame(this.gameLoop.bind(this));
     }
 
     setScene(scene) {
-        if (this.activeScene) {
-            this.activeScene.cleanup(); // Clean up old scene
+        if (this._activeScene) {
+            this._activeScene.destroy();
         }
-        this.activeScene = scene;
-        if (this.activeScene) {
-            this.activeScene.init(this.gl); // Initialize new scene
+        this._activeScene = scene;
+        if (this._activeScene) {
+            this._activeScene.init(this._gl);
         }
     }
 
+    // Configuration methods
     setTargetFPS(fps) {
-        this.targetFPS = fps;
-        this.frameInterval = 1000 / fps;
+        this._targetFPS = fps;
+        this._fixedTimeStep = 1 / fps;
         return this;
     }
 
     setAspectRatio(ratio) {
-        this.targetAspectRatio = ratio;
+        this._targetAspectRatio = ratio;
         this.resizeCanvas();
         return this;
     }
 
+    // Game state methods
     pause() {
-        this.isPaused = true;
+        this._isPaused = true;
         return this;
     }
 
     resume() {
-        this.isPaused = false;
-        this.lastFrameTime = performance.now(); // Reset to prevent large delta
+        this._isPaused = false;
+        this._lastFrameTime = performance.now();
         return this;
     }
 
     stop() {
-        this.isRunning = false;
+        this._isRunning = false;
         return this;
+    }
+
+    // Getters
+    get gl() {
+        return this._gl;
+    }
+
+    get canvas() {
+        return this._canvas;
+    }
+
+    get activeScene() {
+        return this._activeScene;
+    }
+
+    get isPaused() {
+        return this._isPaused;
+    }
+
+    get isRunning() {
+        return this._isRunning;
     }
 }
 
 // Create game instance with options
 const game = new Game({
-    targetFPS: 60,
+    targetFPS: 120,
     aspectRatio: 16/9,
     pixelsPerUnit: 100
 });
