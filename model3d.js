@@ -108,15 +108,15 @@ class Model3D extends Node3D {
         this.vao = gl.createVertexArray();
         gl.bindVertexArray(this.vao);
 
-        // Position buffer
+        // Position buffer (location 0)
         const positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         gl.enableVertexAttribArray(0);
         gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-        // Normal buffer
-        if (normals) {
+        // Normal buffer (location 1)
+        if (normals && normals.length > 0) {
             const normalBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
@@ -124,13 +124,16 @@ class Model3D extends Node3D {
             gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
         }
 
-        // UV buffer
-        if (uvs) {
+        // UV buffer (location 2)
+        if (uvs && uvs.length > 0) {
+            console.log('Setting up UV buffer with', uvs.length / 2, 'UV coordinates');
             const uvBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
             gl.enableVertexAttribArray(2);
             gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
+        } else {
+            console.warn('No UV coordinates provided for model');
         }
 
         // Index buffer
@@ -141,6 +144,9 @@ class Model3D extends Node3D {
 
         // Cleanup
         gl.bindVertexArray(null);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
         return this;
     }
 

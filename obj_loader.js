@@ -31,7 +31,7 @@ class OBJLoader {
                 case 'vt':  // Texture coordinate
                     tempTexCoords.push([
                         parseFloat(tokens[1]),
-                        parseFloat(tokens[2])
+                        tokens.length > 2 ? parseFloat(tokens[2]) : 0.0  // Some files might only have U coordinate
                     ]);
                     break;
 
@@ -72,14 +72,20 @@ class OBJLoader {
                                 const pos = tempVertices[vertex.position];
                                 positions.push(...pos);
 
-                                if (vertex.texcoord !== -1) {
+                                if (vertex.texcoord !== -1 && vertex.texcoord < tempTexCoords.length) {
                                     const tex = tempTexCoords[vertex.texcoord];
                                     texcoords.push(...tex);
+                                } else {
+                                    // Add default UV coordinates if none provided
+                                    texcoords.push(0.0, 0.0);
                                 }
 
-                                if (vertex.normal !== -1) {
+                                if (vertex.normal !== -1 && vertex.normal < tempNormals.length) {
                                     const norm = tempNormals[vertex.normal];
                                     normals.push(...norm);
+                                } else {
+                                    // Add default normal if none provided
+                                    normals.push(0.0, 1.0, 0.0);
                                 }
 
                                 // Store the new index
@@ -96,10 +102,18 @@ class OBJLoader {
             }
         }
 
+        // Debug output
+        console.log('Parsed OBJ:', {
+            vertexCount: positions.length / 3,
+            triangleCount: indices.length / 3,
+            hasUVs: texcoords.length > 0,
+            hasNormals: normals.length > 0
+        });
+
         return {
             positions: positions,
-            texcoords: texcoords.length > 0 ? texcoords : null,
-            normals: normals.length > 0 ? normals : null,
+            texcoords: texcoords,
+            normals: normals,
             indices: indices
         };
     }

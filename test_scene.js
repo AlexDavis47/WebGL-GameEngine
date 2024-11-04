@@ -31,7 +31,7 @@ class TestScene extends Scene {
 
         // Create a test cube
         const testCube = new Model3D(gl);
-        await testCube.loadModel('./assets/models/test_cube/cube.obj');
+        await testCube.loadModel('./assets/models/barrel/barrel.obj');
         rockspire.addChild(testCube);
         testCube.setPosition(0, 5, -8);
 
