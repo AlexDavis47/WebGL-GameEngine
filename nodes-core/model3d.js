@@ -229,12 +229,18 @@ class Model3D extends Node3D {
         return this;
     }
 
-    setCustomShader(shaderOptions) {
+    setCustomShader(shaderOptions) { // TODO: Not entirely sure we even can use this anymore
         const program = this.gl.shaderManager.createCustomShader(
             `${this.name}_shader`,
             shaderOptions
         );
         this.shaderProgram = program;
+        return this;
+    }
+
+    async setShaderFromFile(shaderPath) {
+        const shaderName = `${this.name}_${Date.now()}`; // Unique name
+        this.shaderProgram = await this.gl.shaderManager.loadShader(shaderName, shaderPath);
         return this;
     }
 }

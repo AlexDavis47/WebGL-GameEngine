@@ -6,7 +6,6 @@ class ShaderManager {
         this.shaderPrograms = new Map();
         this.defaultProgram = null;
 
-        // Initialize the base spatial shader
         this.initializeSpatialShader();
     }
 
@@ -31,28 +30,23 @@ class ShaderManager {
         out vec2 v_texcoord;
 
         // User vertex modifications
-        vec3 vertexModify(vec3 vertex, vec3 normal, vec2 uv) {
+        vec3 vertex(vec3 vertex, vec3 normal, vec2 uv) {
             return vertex;
         }
 
         void main() {
             // Start with original values
-            vec3 vertex = a_position;
-            vec3 normal = a_normal;
-            vec2 uv = a_texcoord;
-            
-            // Apply user modifications
-            vertex = vertexModify(vertex, normal, uv);
+            vec3 vertexPos = vertex(a_position, a_normal, a_texcoord);
             
             // Transform vertex to world space
-            vec4 worldPosition = u_worldMatrix * vec4(vertex, 1.0);
+            vec4 worldPosition = u_worldMatrix * vec4(vertexPos, 1.0);
             v_worldPos = worldPosition.xyz;
             
             // Transform normal to world space
-            v_normal = normalize((u_normalMatrix * vec4(normal, 0.0)).xyz);
+            v_normal = normalize((u_normalMatrix * vec4(a_normal, 0.0)).xyz);
             
             // Pass texture coordinates
-            v_texcoord = uv;
+            v_texcoord = a_texcoord;
             
             // Final position
             gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
@@ -72,21 +66,34 @@ class ShaderManager {
         uniform float u_roughness;
         uniform sampler2D u_mainTexture;
         uniform bool u_useTexture;
+        uniform vec3 u_ambientLight;
+        uniform vec3 u_cameraPosition;
 
         // Output color
         out vec4 fragColor;
 
-        // User fragment modifications
-        vec4 fragmentModify(vec3 baseColor, vec3 normal, vec2 uv) {
-            return vec4(baseColor, 1.0);
-        }
+        // Forward declarations of user-defined functions
+        vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv);
+        vec3 light();
 
         void main() {
-            // Get base color
             vec3 baseColor = u_useTexture ? texture(u_mainTexture, v_texcoord).rgb : u_baseColor;
+            vec3 normal = normalize(v_normal);
             
-            // Apply user modifications
-            fragColor = fragmentModify(baseColor, normalize(v_normal), v_texcoord);
+            // Get color from fragment function
+            fragColor = fragment(baseColor, normal, v_texcoord);
+        }
+
+        // Default fragment implementation
+        vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv) {
+            // Calculate lighting
+            vec3 light = light();
+            return vec4(baseColor * (light + u_ambientLight), 1.0);
+        }
+
+        // Default light implementation
+        vec3 light() {
+            return vec3(0.0);
         }`;
 
         // Create the base spatial shader program
@@ -151,37 +158,34 @@ class ShaderManager {
         return programInfo;
     }
 
-    createCustomShader(name, options = {}) {
+    createCustomShader(name, { shaderCode }) {
         // Get the base spatial shader sources
         const baseProgram = this.shaderPrograms.get('spatial');
         let vertexShader = baseProgram.vertexSource;
         let fragmentShader = baseProgram.fragmentSource;
 
-        // If custom vertex modifications are provided
-        if (options.vertexModify) {
-            vertexShader = vertexShader.replace(
-                'vec3 vertexModify(vec3 vertex, vec3 normal, vec2 uv) {\n            return vertex;\n        }',
-                `vec3 vertexModify(vec3 vertex, vec3 normal, vec2 uv) {\n            ${options.vertexModify}\n        }`
-            );
-        }
-
-        // If custom fragment modifications are provided
-        if (options.fragmentModify) {
-            fragmentShader = fragmentShader.replace(
-                'vec4 fragmentModify(vec3 baseColor, vec3 normal, vec2 uv) {\n            return vec4(baseColor, 1.0);\n        }',
-                `vec4 fragmentModify(vec3 baseColor, vec3 normal, vec2 uv) {\n            ${options.fragmentModify}\n        }`
-            );
-        }
-
-        // If additional uniforms are provided
-        if (options.uniforms) {
-            // Add uniform declarations to both shaders
-            const uniformDeclarations = options.uniforms.map(u => `uniform ${u.type} ${u.name};`).join('\n');
-            vertexShader = uniformDeclarations + '\n' + vertexShader;
-            fragmentShader = uniformDeclarations + '\n' + fragmentShader;
-        }
+        // Replace the default fragment and light functions with the custom ones
+        // First, remove the default implementations
+        fragmentShader = fragmentShader.replace(
+            /\/\/ Default fragment implementation[\s\S]*?}[\s\S]*?\/\/ Default light implementation[\s\S]*?}/,
+            shaderCode
+        );
 
         return this.createProgram(name, vertexShader, fragmentShader);
+    }
+
+    async loadShader(name, path) {
+        try {
+            const response = await fetch(path);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const shaderCode = await response.text();
+            return this.createCustomShader(name, { shaderCode });
+        } catch (error) {
+            console.error(`Error loading shader from ${path}:`, error);
+            throw error;
+        }
     }
 
     getProgram(name) {
@@ -196,28 +200,5 @@ class ShaderManager {
         return this.defaultProgram;
     }
 }
-
-// Example shader modifications that can be exported
-export const redShader = {
-    fragmentModify: `
-        return vec4(1.0, 0.0, 0.0, 1.0); // Pure red
-    `
-};
-
-export const phongShader = {
-    fragmentModify: `
-        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-        float diff = max(dot(normal, lightDir), 0.0);
-        vec3 diffuse = baseColor * diff;
-        
-        // Add specular
-        vec3 viewDir = normalize(vec3(0.0, 0.0, 5.0) - v_worldPos);
-        vec3 reflectDir = reflect(-lightDir, normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-        vec3 specular = vec3(0.5) * spec;
-        
-        return vec4(diffuse + specular + baseColor * 0.1, 1.0);
-    `
-};
 
 export default ShaderManager;
