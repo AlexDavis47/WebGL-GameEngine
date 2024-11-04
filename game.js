@@ -18,13 +18,14 @@ class Game {
 
         // Timing
         this.lastFrameTime = 0;
-        this.targetFPS = options.targetFPS || 120;
+        this.targetFPS = options.targetFPS || 120; // This is the default FPS value
+        this.frameRateUnlocked = true;
         this.frameInterval = 1000 / this.targetFPS;
         this.accumulator = 0;
 
         // Resolution
         this.targetAspectRatio = options.aspectRatio || 16/9;
-        this.pixelsPerUnit = options.pixelsPerUnit || 100; // For calculating base resolution
+        this.pixelsPerUnit = options.pixelsPerUnit || 100; // For example, if you move by 1 unit, you move by 100 pixels (default)
 
         this.init();
     }
@@ -39,6 +40,7 @@ class Game {
 
         // Initialize shader manager and create default shader
         this.shaderManager = new ShaderManager(this.gl);
+        this.gl.shaderManager = this.shaderManager;
         const defaultProgram = this.shaderManager.createProgram(
             'default',
             defaultVertexShader,
@@ -112,12 +114,19 @@ class Game {
         if (!this.isRunning) return;
 
         // Calculate frame delta and update accumulator
-        const deltaTime = currentTime - this.lastFrameTime;
+        let deltaTime = currentTime - this.lastFrameTime;
         this.accumulator += deltaTime;
 
         // Update game at fixed time steps
         while (this.accumulator >= this.frameInterval) {
-            const fixedDeltaTime = this.frameInterval / 1000; // Convert to seconds
+            // Convert from milliseconds to seconds, makes more sense to define values in terms
+            // of seconds (e.g. velocity is units per second, not units per millisecond)
+            const fixedDeltaTime = this.frameInterval / 1000;
+
+            // If our delta time is more than 120% of the expected frame time, we're falling behind, clamp the deltatime
+            if (deltaTime > this.frameInterval * 1.2) {
+                deltaTime = this.frameInterval * 1.2; // TODO: I didn't actually test if this works
+            }
 
             if (!this.isPaused) {
                 if (this.activeScene) {
@@ -137,13 +146,13 @@ class Game {
         requestAnimationFrame((timestamp) => this.gameLoop(timestamp));
     }
 
-    async setScene(scene) {
+    setScene(scene) {
         if (this.activeScene) {
-            this.activeScene.cleanup();
+            this.activeScene.cleanup(); // Clean up old scene
         }
         this.activeScene = scene;
         if (this.activeScene) {
-            await this.activeScene.init(this.gl);
+            this.activeScene.init(this.gl); // Initialize new scene
         }
     }
 

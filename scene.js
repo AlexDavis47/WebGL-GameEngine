@@ -1,4 +1,4 @@
-import Node from './node.js';
+import Node from './nodes-core/node.js';
 
 class Scene extends Node {
     constructor() {
@@ -18,7 +18,7 @@ class Scene extends Node {
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
 
-        // Initialize all nodes in the scene
+        // Initialize all nodes-core in the scene
         super.init(gl);
     }
 
@@ -26,7 +26,7 @@ class Scene extends Node {
         // Update input state at the start of each frame
         updateInput(); // From your input manager
 
-        // Update all nodes in the scene
+        // Update all nodes-core in the scene
         super.update(deltaTime);
     }
 
@@ -34,7 +34,7 @@ class Scene extends Node {
         // Clear the canvas
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // Render all nodes in the scene
+        // Render all nodes-core in the scene
         super.render(gl);
     }
 

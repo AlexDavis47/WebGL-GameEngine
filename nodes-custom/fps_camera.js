@@ -1,5 +1,5 @@
-import Camera3D from "./camera3d.js";
-import Model3D from "./model3d.js";
+import Camera3D from "../nodes-core/camera3d.js";
+import Model3D from "../nodes-core/model3d.js";
 
 class FPSCamera extends Camera3D {
     constructor() {

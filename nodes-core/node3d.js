@@ -20,7 +20,7 @@ class Node3D extends Node {
         // Always update if flagged or if parent has updated
         const parentNeedsUpdate = this.parent instanceof Node3D && this.parent.needsUpdate;
 
-        if (this.needsUpdate || parentNeedsUpdate) {
+        if (this.needsUpdate || parentNeedsUpdate) { // Need update is essentially just a synonym for the dirty flag
             // Build local transform matrix
             glMatrix.mat4.fromRotationTranslationScale(
                 this.localMatrix,

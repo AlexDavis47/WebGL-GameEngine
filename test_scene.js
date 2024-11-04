@@ -1,6 +1,7 @@
 import Scene from './scene.js';
-import FPSCamera from './fps_camera.js';
-import Model3D from "./model3d.js";
+import FPSCamera from './nodes-custom/fps_camera.js';
+import Model3D from "./nodes-core/model3d.js";
+import {phongShader, redShader} from "./shader_manager.js";
 
 let rockspire;
 
@@ -26,13 +27,15 @@ class TestScene extends Scene {
         rockspire = new Model3D(gl);
         await rockspire.loadModel('./assets/models/rockspire/rockspire.obj');
         rockspire.setPosition(0, 0, 0)
-            .setScale(0.5, 0.5, 0.5);
+        rockspire.setScale(0.5, 0.5, 0.5);
+        rockspire.setCustomShader(phongShader)
         this.addChild(rockspire);
 
         // Create a test cube
         const testCube = new Model3D(gl);
-        await testCube.loadModel('./assets/models/barrel/barrel.obj');
+        await testCube.loadModel('./assets/models/test_cube/cube.obj');
         rockspire.addChild(testCube);
+        testCube.setCustomShader(redShader);
         testCube.setPosition(0, 5, -8);
 
 

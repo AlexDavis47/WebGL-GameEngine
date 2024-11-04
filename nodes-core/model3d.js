@@ -1,7 +1,7 @@
 import Node3D from './node3d.js';
-import { UniformSetter } from './default_shaders.js';
-import OBJLoader from "./obj_loader.js";
-import MTLLoader from "./mtl_loader.js";
+import { UniformSetter } from '../default_shaders.js';
+import OBJLoader from "../util/obj_loader.js";
+import MTLLoader from "../util/mtl_loader.js";
 
 class Model3D extends Node3D {
     constructor(gl) {
@@ -226,6 +226,15 @@ class Model3D extends Node3D {
 
     setBaseColor(r, g, b) {
         this.material.baseColor = [r, g, b];
+        return this;
+    }
+
+    setCustomShader(shaderOptions) {
+        const program = this.gl.shaderManager.createCustomShader(
+            `${this.name}_shader`,
+            shaderOptions
+        );
+        this.shaderProgram = program;
         return this;
     }
 }
