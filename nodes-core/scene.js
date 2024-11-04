@@ -1,4 +1,4 @@
-import Node from './nodes-core/node.js';
+import Node from './node.js';
 
 class Scene extends Node {
     constructor() {
@@ -38,26 +38,23 @@ class Scene extends Node {
         super.render(gl);
     }
 
-    setAmbientLight(r, g, b) {
-        this.ambientLight = [r, g, b];
-        return this;
-    }
-
     setClearColor(r, g, b, a = 1.0) {
         this.clearColor = [r, g, b, a];
         return this;
     }
 
-    getAllNodesOfType(typeName) {
+    // In scene.js
+    getAllNodesOfType(type) {
         const nodes = [];
         this.traverse(node => {
-            // Check if the node's constructor name matches the type we're looking for
-            if (node.constructor.name === typeName) {
+            // Check if node is an instance of the type we're looking for
+            if (node instanceof type) {
                 nodes.push(node);
             }
         });
         return nodes;
     }
+
 
     // Helper method to find the first node of a specific type
     getFirstNodeOfType(typeName) {

@@ -41,27 +41,34 @@ class FPSCamera extends Camera3D {
         this.getForwardVector(this.forward);
         this.getRightVector(this.right);
 
+        // Create a temporary vector for movement calculations
+        const movement = glMatrix.vec3.create();
+
         // Handle keyboard input for movement
         if (isKeyPressed(Keys.W)) {
-            glMatrix.vec3.scaleAndAdd(this.position, this.position, this.forward, moveAmount);
+            glMatrix.vec3.scaleAndAdd(movement, movement, this.forward, moveAmount);
         }
         if (isKeyPressed(Keys.S)) {
-            glMatrix.vec3.scaleAndAdd(this.position, this.position, this.forward, -moveAmount);
+            glMatrix.vec3.scaleAndAdd(movement, movement, this.forward, -moveAmount);
         }
         if (isKeyPressed(Keys.A)) {
-            glMatrix.vec3.scaleAndAdd(this.position, this.position, this.right, -moveAmount);
+            glMatrix.vec3.scaleAndAdd(movement, movement, this.right, -moveAmount);
         }
         if (isKeyPressed(Keys.D)) {
-            glMatrix.vec3.scaleAndAdd(this.position, this.position, this.right, moveAmount);
+            glMatrix.vec3.scaleAndAdd(movement, movement, this.right, moveAmount);
         }
         if (isKeyPressed(Keys.SPACE)) {
-            glMatrix.vec3.scaleAndAdd(this.position, this.position, this.up, moveAmount);
+            glMatrix.vec3.scaleAndAdd(movement, movement, this.up, moveAmount);
         }
         if (isKeyPressed(Keys.SHIFT_LEFT)) {
-            glMatrix.vec3.scaleAndAdd(this.position, this.position, this.up, -moveAmount);
+            glMatrix.vec3.scaleAndAdd(movement, movement, this.up, -moveAmount);
         }
 
-        this.needsUpdate = true;
+        // Apply movement to local position
+        if (glMatrix.vec3.length(movement) > 0) {
+            glMatrix.vec3.add(this.localPosition, this.localPosition, movement);
+            this.needsUpdate = true;
+        }
     }
 
     updateRotation() {
@@ -69,16 +76,17 @@ class FPSCamera extends Camera3D {
         const dx = getMouseDeltaX();
         const dy = getMouseDeltaY();
 
-        this.yaw -= dx * this.lookSpeed;
-        this.pitch -= dy * this.lookSpeed;
+        if (dx !== 0 || dy !== 0) {
+            this.yaw -= dx * this.lookSpeed;
+            this.pitch -= dy * this.lookSpeed;
 
-        // Clamp pitch to prevent camera flipping
-        this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
+            // Clamp pitch to prevent camera flipping
+            this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
 
-        // Update rotation
-        this.setRotationFromEuler(this.pitch, this.yaw, 0);
-
-        this.needsUpdate = true;
+            // Update rotation
+            this.setRotationFromEuler(this.pitch, this.yaw, 0);
+            this.needsUpdate = true;
+        }
     }
 
     // Configuration methods
@@ -90,6 +98,18 @@ class FPSCamera extends Camera3D {
     setLookSpeed(speed) {
         this.lookSpeed = speed;
         return this;
+    }
+
+    // Override setPosition to use localPosition
+    setPosition(x, y, z) {
+        glMatrix.vec3.set(this.localPosition, x, y, z);
+        this.needsUpdate = true;
+        return this;
+    }
+
+    // Add method to get camera's actual world position for view matrix
+    getCameraWorldPosition() {
+        return this.worldPosition;
     }
 }
 

@@ -1,5 +1,7 @@
 // shader_manager.js
 
+import Light from "./nodes-core/light.js";
+
 class ShaderManager {
     constructor(gl) {
         this.gl = gl;
@@ -11,92 +13,118 @@ class ShaderManager {
 
     initializeSpatialShader() {
         const spatialVertex = `#version 300 es
-        precision highp float;
-
-        // Built-in attributes
-        in vec3 a_position;
-        in vec3 a_normal;
-        in vec2 a_texcoord;
-
-        // Built-in uniforms
-        uniform mat4 u_worldMatrix;
-        uniform mat4 u_viewMatrix;
-        uniform mat4 u_projectionMatrix;
-        uniform mat4 u_normalMatrix;
-
-        // Varyings for fragment shader
-        out vec3 v_normal;
-        out vec3 v_worldPos;
-        out vec2 v_texcoord;
-
-        // User vertex modifications
-        vec3 vertex(vec3 vertex, vec3 normal, vec2 uv) {
-            return vertex;
-        }
-
-        void main() {
-            // Start with original values
-            vec3 vertexPos = vertex(a_position, a_normal, a_texcoord);
-            
-            // Transform vertex to world space
-            vec4 worldPosition = u_worldMatrix * vec4(vertexPos, 1.0);
-            v_worldPos = worldPosition.xyz;
-            
-            // Transform normal to world space
-            v_normal = normalize((u_normalMatrix * vec4(a_normal, 0.0)).xyz);
-            
-            // Pass texture coordinates
-            v_texcoord = a_texcoord;
-            
-            // Final position
-            gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
-        }`;
+            precision highp float;
+        
+            // Built-in attributes
+            in vec3 a_position;
+            in vec3 a_normal;
+            in vec2 a_texcoord;
+        
+            // Built-in uniforms
+            uniform mat4 u_worldMatrix;
+            uniform mat4 u_viewMatrix;
+            uniform mat4 u_projectionMatrix;
+            uniform mat4 u_normalMatrix;
+        
+            // Varyings for fragment shader
+            out vec3 v_normal;
+            out vec3 v_worldPos;
+            out vec2 v_texcoord;
+        
+            // User vertex modifications
+            vec3 vertex(vec3 vertex, vec3 normal, vec2 uv) {
+                return vertex;
+            }
+        
+            void main() {
+                // Start with original values
+                vec3 vertexPos = vertex(a_position, a_normal, a_texcoord);
+                
+                // Transform vertex to world space
+                vec4 worldPosition = u_worldMatrix * vec4(vertexPos, 1.0);
+                v_worldPos = worldPosition.xyz;
+                
+                // Transform normal to world space
+                v_normal = normalize((u_normalMatrix * vec4(a_normal, 0.0)).xyz);
+                
+                // Pass texture coordinates
+                v_texcoord = a_texcoord;
+                
+                // Final position
+                gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
+            }`;
 
         const spatialFragment = `#version 300 es
-        precision highp float;
+            precision highp float;
+        
+            // Light type enum
+            const int LIGHT_POINT = 0;
+            const int LIGHT_DIRECTIONAL = 1;
+            const int LIGHT_AMBIENT = 2;
+        
+            // Generic light structure
+            struct Light {
+                int type;
+                vec3 position;    // Used by point lights
+                vec3 direction;   // Used by directional lights
+                vec3 color;
+                float intensity;
+                float range;      // Used by point lights
+            };
+        
+            // Inputs from vertex shader
+            in vec3 v_normal;
+            in vec3 v_worldPos;
+            in vec2 v_texcoord;
+        
+            // Material uniforms
+            uniform vec3 u_baseColor;
+            uniform float u_metallic;
+            uniform float u_roughness;
+            uniform sampler2D u_mainTexture;
+            uniform bool u_useTexture;
+            uniform vec3 u_cameraPosition;
+        
+            // Light uniforms
+            uniform Light u_lights[8];  // Increased size to handle all types
+            uniform int u_numLights;
+        
+            // Output color
+            out vec4 fragColor;
+        
+            // Forward declarations of user-defined functions
+            vec3 light(Light light);
+            vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv);
+        
+            void main() {
+                vec3 baseColor = u_useTexture ? texture(u_mainTexture, v_texcoord).rgb : u_baseColor;
+                
+                // Get color from fragment function
+                fragColor = fragment(baseColor, normalize(v_normal), v_texcoord);
+            }
+        
+            // Default fragment implementation
+            vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv) {
+                vec3 lightContrib = vec3(0.0);
+                vec3 ambient = vec3(0.0);
+                
+                // Accumulate contribution from each light
+                for(int i = 0; i < u_numLights; i++) {
+                    if(u_lights[i].type == LIGHT_AMBIENT) {
+                        ambient += u_lights[i].color * u_lights[i].intensity;
+                    } else {
+                        lightContrib += light(u_lights[i]);
+                    }
+                }
+                
+                return vec4(baseColor * (lightContrib + ambient), 1.0);
+            }
+        
+            // Default light implementation
+            vec3 light(Light light) {
+                return vec3(0.0);
+            }`;
 
-        // Inputs from vertex shader
-        in vec3 v_normal;
-        in vec3 v_worldPos;
-        in vec2 v_texcoord;
-
-        // Material uniforms
-        uniform vec3 u_baseColor;
-        uniform float u_metallic;
-        uniform float u_roughness;
-        uniform sampler2D u_mainTexture;
-        uniform bool u_useTexture;
-        uniform vec3 u_ambientLight;
-        uniform vec3 u_cameraPosition;
-
-        // Output color
-        out vec4 fragColor;
-
-        // Forward declarations of user-defined functions
-        vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv);
-        vec3 light();
-
-        void main() {
-            vec3 baseColor = u_useTexture ? texture(u_mainTexture, v_texcoord).rgb : u_baseColor;
-            vec3 normal = normalize(v_normal);
-            
-            // Get color from fragment function
-            fragColor = fragment(baseColor, normal, v_texcoord);
-        }
-
-        // Default fragment implementation
-        vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv) {
-            // Calculate lighting
-            vec3 light = light();
-            return vec4(baseColor * (light + u_ambientLight), 1.0);
-        }
-
-        // Default light implementation
-        vec3 light() {
-            return vec3(0.0);
-        }`;
-
-        // Create the base spatial shader program
         this.createProgram('spatial', spatialVertex, spatialFragment);
         this.setDefaultProgram('spatial');
     }
@@ -199,6 +227,85 @@ class ShaderManager {
     getDefaultProgram() {
         return this.defaultProgram;
     }
+
+    setUniforms(program, camera, model, scene) {
+        // Set all uniform types using our helper methods
+        this.setTransformUniforms(program, camera, model);
+        this.setLightUniforms(program, scene);
+        this.setMaterialUniforms(program, model.material);
+    }
+
+    setTransformUniforms(program, camera, model) {
+        const { uniforms } = program;
+        const gl = this.gl;
+
+        gl.uniformMatrix4fv(uniforms.get('u_worldMatrix'), false, model.worldMatrix);
+        gl.uniformMatrix4fv(uniforms.get('u_viewMatrix'), false, camera.viewMatrix);
+        gl.uniformMatrix4fv(uniforms.get('u_projectionMatrix'), false, camera.projectionMatrix);
+
+        // Normal matrix (inverse transpose of world matrix)
+        const normalMatrix = glMatrix.mat4.create();
+        glMatrix.mat4.invert(normalMatrix, model.worldMatrix);
+        glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+        gl.uniformMatrix4fv(uniforms.get('u_normalMatrix'), false, normalMatrix);
+
+        // Convert camera position to Float32Array if it isn't already
+        let cameraPos;
+        if (camera.position instanceof Float32Array) {
+            cameraPos = camera.position;
+        } else if (Array.isArray(camera.position)) {
+            cameraPos = new Float32Array(camera.position);
+        } else {
+            // If it's a vec3 from glMatrix, convert it to Float32Array
+            cameraPos = new Float32Array(camera.worldPosition || camera.position);
+        }
+
+        gl.uniform3fv(uniforms.get('u_cameraPosition'), cameraPos);
+    }
+
+    setLightUniforms(program, scene) {
+        const { uniforms } = program;
+        const gl = this.gl;
+
+        // Get all lights in the scene
+        const lights = scene.getAllNodesOfType(Light);
+        gl.uniform1i(uniforms.get('u_numLights'), Math.min(lights.length, 8));
+
+        // Set each light's uniforms
+        lights.slice(0, 8).forEach((light, index) => {
+            const lightData = light.getShaderLight();
+            const prefix = `u_lights[${index}]`;
+
+            // Ensure all vector data is Float32Array
+            const position = new Float32Array(lightData.position);
+            const direction = new Float32Array(lightData.direction);
+            const color = new Float32Array(lightData.color);
+
+            gl.uniform1i(uniforms.get(`${prefix}.type`), lightData.type);
+            gl.uniform3fv(uniforms.get(`${prefix}.position`), position);
+            gl.uniform3fv(uniforms.get(`${prefix}.direction`), direction);
+            gl.uniform3fv(uniforms.get(`${prefix}.color`), color);
+            gl.uniform1f(uniforms.get(`${prefix}.intensity`), lightData.intensity);
+            gl.uniform1f(uniforms.get(`${prefix}.range`), lightData.range);
+        });
+    }
+
+    setMaterialUniforms(program, material) {
+        const { uniforms } = program;
+        const gl = this.gl;
+
+        gl.uniform3fv(uniforms.get('u_baseColor'), material.baseColor);
+        gl.uniform1f(uniforms.get('u_metallic'), material.metallic);
+        gl.uniform1f(uniforms.get('u_roughness'), material.roughness);
+        gl.uniform1i(uniforms.get('u_useTexture'), material.texture ? 1 : 0);
+
+        if (material.texture) {
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, material.texture);
+            gl.uniform1i(uniforms.get('u_mainTexture'), 0);
+        }
+    }
+
 }
 
 export default ShaderManager;

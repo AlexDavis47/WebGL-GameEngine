@@ -1,5 +1,4 @@
 import Node3D from './node3d.js';
-import { UniformSetter } from '../default_shaders.js';
 import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
 
@@ -182,10 +181,8 @@ class Model3D extends Node3D {
         const program = this.shaderProgram || gl.defaultProgram;
         gl.useProgram(program.program);
 
-        // Set uniforms
-        UniformSetter.setBasicUniforms(gl, program, this.getScene().activeCamera, this);
-        UniformSetter.setLightUniforms(gl, program, this.getScene());
-        UniformSetter.setMaterialUniforms(gl, program, this.material);
+        // Set all uniforms
+        gl.shaderManager.setUniforms(program, this.getScene().activeCamera, this, this.getScene());
 
         // Bind VAO and draw
         gl.bindVertexArray(this.vao);

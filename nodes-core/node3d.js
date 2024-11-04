@@ -6,7 +6,8 @@ class Node3D extends Node {
         this.name = "Node3D";
 
         // Transform components
-        this.position = glMatrix.vec3.create();
+        this.localPosition = glMatrix.vec3.create();  // Relative to parent
+        this.worldPosition = glMatrix.vec3.create();  // Relative to world/root
         this.rotation = glMatrix.quat.create();
         this.scale = glMatrix.vec3.fromValues(1, 1, 1);
 
@@ -25,7 +26,7 @@ class Node3D extends Node {
             glMatrix.mat4.fromRotationTranslationScale(
                 this.localMatrix,
                 this.rotation,
-                this.position,
+                this.localPosition,
                 this.scale
             );
 
@@ -35,6 +36,10 @@ class Node3D extends Node {
             } else {
                 glMatrix.mat4.copy(this.worldMatrix, this.localMatrix);
             }
+
+            // Update world position
+            glMatrix.vec3.set(this.worldPosition, 0, 0, 0);
+            glMatrix.vec3.transformMat4(this.worldPosition, this.worldPosition, this.worldMatrix);
 
             // Mark update complete
             this.needsUpdate = false;
@@ -55,7 +60,7 @@ class Node3D extends Node {
 
     // Transform methods
     setPosition(x, y, z) {
-        glMatrix.vec3.set(this.position, x, y, z);
+        glMatrix.vec3.set(this.localPosition, x, y, z);
         this.needsUpdate = true;
         return this;
     }
@@ -73,26 +78,26 @@ class Node3D extends Node {
     }
 
     move(x, y, z) {
-        glMatrix.vec3.add(this.position, this.position, [x, y, z]);
+        glMatrix.vec3.add(this.localPosition, this.localPosition, [x, y, z]);
         this.needsUpdate = true;
         return this;
     }
 
     // You could also add convenience methods for single-axis movement
     moveX(amount) {
-        this.position[0] += amount;
+        this.localPosition[0] += amount;
         this.needsUpdate = true;
         return this;
     }
 
     moveY(amount) {
-        this.position[1] += amount;
+        this.localPosition[1] += amount;
         this.needsUpdate = true;
         return this;
     }
 
     moveZ(amount) {
-        this.position[2] += amount;
+        this.localPosition[2] += amount;
         this.needsUpdate = true;
         return this;
     }
@@ -125,9 +130,13 @@ class Node3D extends Node {
 
     // Utility methods
     getWorldPosition(out = glMatrix.vec3.create()) {
-        const pos = glMatrix.vec3.fromValues(0, 0, 0);
-        glMatrix.vec3.transformMat4(pos, pos, this.worldMatrix);
-        return pos;
+        glMatrix.vec3.copy(out, this.worldPosition);
+        return out;
+    }
+
+    getLocalPosition(out = glMatrix.vec3.create()) {
+        glMatrix.vec3.copy(out, this.localPosition);
+        return out;
     }
 
     getForwardVector(out = glMatrix.vec3.create()) {
@@ -150,7 +159,7 @@ class Node3D extends Node {
 
     lookAt(target, up = glMatrix.vec3.fromValues(0, 1, 0)) {
         const lookAtMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.targetTo(lookAtMatrix, this.position, target, up);
+        glMatrix.mat4.targetTo(lookAtMatrix, this.localPosition, target, up);
         glMatrix.mat4.getRotation(this.rotation, lookAtMatrix);
         this.needsUpdate = true;
         return this;

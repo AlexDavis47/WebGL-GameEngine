@@ -115,17 +115,18 @@ class Game {
 
         // Calculate frame delta and update accumulator
         let deltaTime = currentTime - this.lastFrameTime;
+        let fixedDeltaTime = this.frameInterval / 1000;
         this.accumulator += deltaTime;
 
         // Update game at fixed time steps
         while (this.accumulator >= this.frameInterval) {
             // Convert from milliseconds to seconds, makes more sense to define values in terms
             // of seconds (e.g. velocity is units per second, not units per millisecond)
-            const fixedDeltaTime = this.frameInterval / 1000;
+            fixedDeltaTime = this.frameInterval / 1000;
 
             // If our delta time is more than 120% of the expected frame time, we're falling behind, clamp the deltatime
-            if (deltaTime > this.frameInterval * 1.2) {
-                deltaTime = this.frameInterval * 1.2; // TODO: I didn't actually test if this works
+            if (fixedDeltaTime > this.frameInterval * 1.2) {
+                fixedDeltaTime = this.frameInterval * 1.2; // TODO: I didn't actually test if this works
             }
 
             if (!this.isPaused) {
