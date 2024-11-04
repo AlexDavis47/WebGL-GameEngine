@@ -1,7 +1,8 @@
+// State tracking
 const keyStates = new Map(); // Current frame state
 const previousKeyStates = new Map(); // Last frame state
 
-// Mouse tracking (keep your existing mouse variables)
+// Mouse tracking
 let mouseX = 0;
 let mouseY = 0;
 let mouseDeltaX = 0;
@@ -12,6 +13,27 @@ let previousMouseY = 0;
 // Mouse button states
 const mouseStates = new Map();
 const previousMouseStates = new Map();
+
+// Pointer lock state
+let isPointerLocked = false;
+
+// Initialize pointer lock
+const canvas = document.getElementById('gameCanvas');
+canvas.addEventListener('click', () => {
+    if (!isPointerLocked) {
+        canvas.requestPointerLock();
+    }
+});
+
+document.addEventListener('pointerlockchange', () => {
+    isPointerLocked = document.pointerLockElement === canvas;
+
+    // Reset mouse positions when pointer lock changes to prevent jumps
+    if (isPointerLocked) {
+        previousMouseX = mouseX;
+        previousMouseY = mouseY;
+    }
+});
 
 // Input event handlers
 document.addEventListener('keydown', (event) => {
@@ -31,8 +53,14 @@ document.addEventListener('mouseup', (event) => {
 });
 
 document.addEventListener('mousemove', (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
+    if (isPointerLocked) {
+        // Use movementX/Y for pointer lock which gives us relative movement
+        mouseX += event.movementX;
+        mouseY += event.movementY;
+    } else {
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+    }
 });
 
 // Core input checking functions
@@ -81,18 +109,6 @@ function updateInput() {
     previousMouseY = mouseY;
 }
 
-// Debug function
-function debugKeyState(keyCode) {
-    console.log({
-        keyCode,
-        current: keyStates.get(keyCode),
-        previous: previousKeyStates.get(keyCode),
-        isDown: isKeyPressed(keyCode),
-        isPressed: isKeyJustPressed(keyCode),
-        isReleased: isKeyJustReleased(keyCode)
-    });
-}
-
 // Mouse position getters
 function getMouseX() {
     return mouseX;
@@ -110,6 +126,11 @@ function getMouseDeltaY() {
     return mouseDeltaY;
 }
 
+// Pointer lock status
+function isPointerLockActive() {
+    return isPointerLocked;
+}
+
 // Mouse button constants
 const MouseButton = {
     LEFT: 0,
@@ -118,7 +139,6 @@ const MouseButton = {
     SCROLL_UP: 3,
     SCROLL_DOWN: 4
 };
-
 
 // Key mappings using event.code values
 const Keys = {

@@ -3,131 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGL Renderer</title>
-
-    <!-- load the css file -->
-    <link rel="stylesheet" href="style.css">
-
-    <!-- load the javascript files -->
-    <script src="abstracts/shape.js" defer></script>
-    <script src="lights/abstract_light.js" defer></script>
-    <script src="lights/directional_light.js" defer></script>
-    <script src="lights/point_light.js" defer></script>
-    <script src="abstracts/abstract_model.js" defer></script>
-    <script src="abstracts/abstract_object.js" defer></script>
-    <script src="abstracts/abstract_actor.js" defer></script>
-    <script src="models/model_cube.js" defer></script>
-    <script src="actors/actor_cube.js" defer></script>
-    <script src="model.js" defer></script>
-    <script src="view.js" defer></script>
-    <script src="input_manager.js" defer></script>
-    <script src="controller.js" defer></script>
-    <script src="gl-matrix.js" defer></script>
-    <script src="lights/abstract_light.js"></script>
+    <title>WebGL Game Engine</title>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
-<div class="app-container">
-    <!-- Canvas Section -->
-    <div class="canvas-wrapper">
-        <div id="canvas-holder">
-            <canvas id="webgl-canvas"></canvas>
-        </div>
-    </div>
-
-    <!-- Controls Panel -->
-    <div class="controls-panel">
-        <div class="controls-scroll">
-            <!-- Frame Rate Section -->
-            <section class="control-section">
-                <h2>Frame Rate</h2>
-                <div class="control-group">
-                    <div class="slider-container">
-                        <div class="control-row">
-                            <span>Target FPS</span>
-                            <span id="frameRateValue" class="slider-value">60</span>
-                        </div>
-                        <input type="range" id="frameRate" min="1" max="144" value="60">
-                    </div>
-                    <div class="control-row">
-                        <span>Current FPS</span>
-                        <span id="actualFrameRate" class="slider-value">0</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Camera Settings Section -->
-            <section class="control-section">
-                <h2>Camera Settings</h2>
-                <div class="control-group">
-                    <div class="slider-container">
-                        <div class="control-row">
-                            <span>Field of View</span>
-                            <span id="fovValue" class="slider-value">60</span>
-                        </div>
-                        <input type="range" id="fov" min="30" max="120" value="60">
-                    </div>
-                </div>
-                <div class="control-group">
-                    <div class="slider-container">
-                        <div class="control-row">
-                            <span>Camera Distance</span>
-                            <span id="cameraDistanceValue" class="slider-value">2.0</span>
-                        </div>
-                        <input type="range" id="cameraDistance" min="0.1" max="10" step="0.1" value="2.0">
-                    </div>
-                </div>
-            </section>
-
-            <!-- Material Properties Section -->
-            <section class="control-section">
-                <h2>Material Properties</h2>
-                <div class="control-group">
-                    <div class="slider-container">
-                        <div class="control-row">
-                            <span>Shininess</span>
-                            <span id="shininessValue" class="slider-value">32</span>
-                        </div>
-                        <input type="range" id="shininess" min="1" max="128" value="32">
-                    </div>
-                </div>
-            </section>
-
-            <!-- Lighting Section -->
-            <section class="control-section">
-                <h2>Lighting</h2>
-                <div class="control-group">
-                    <div class="control-row">
-                        <span>Global Ambient Light</span>
-                    </div>
-                    <div class="color-container">
-                        <div class="control-row">
-                            <span>Color</span>
-                            <input type="color" id="ambientLightColor" value="#ffffff">
-                        </div>
-                    </div>
-                    <div class="slider-container">
-                        <div class="control-row">
-                            <span>Intensity</span>
-                            <span id="ambientLightIntensityValue" class="slider-value">1.0</span>
-                        </div>
-                        <input type="range" id="ambientLightIntensity" min="0" max="2" step="0.1" value="1.0">
-                    </div>
-                    <div class="button-group">
-                        <button type="button" id="addRandomPointLight">Add Random Point Light</button>
-                        <button type="button" id="addRandomDirectionalLight">Add Random Directional Light</button>
-                    </div>
-                    <div class="control-row">
-                        <span>Number of Lights</span>
-                        <span id="numLights">0</span>
-                    </div>
-                    <button type="button" id="removeAllLights" class="remove-lights">Remove All Lights</button>
-                </div>
-            </section>
-        </div>
-    </div>
-</div>
-
-<script src="index.js"></script>
-
+<canvas id="gameCanvas"></canvas>
+<script src="util/input_manager.js"></script>
+<script src="util/gl-matrix.js"></script>
+<script type="module" src="game.js"></script>
 </body>
 </html>
