@@ -43,9 +43,9 @@ class TestScene extends Scene {
 
         const pointLight = new PointLight(gl)
         pointLight.setPosition(0, 0 ,0)
-        pointLight.setColor(5, 1, 1)
+        pointLight.setColor(1, 1, 1)
         pointLight.setIntensity(1)
-        pointLight.setRange(5)
+        pointLight.setRange(15)
         this.camera.addChild(pointLight)
 
         // Initialize the scene
