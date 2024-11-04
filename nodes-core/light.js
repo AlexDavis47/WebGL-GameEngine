@@ -39,7 +39,6 @@ class Light extends Node3D {
         };
     }
     update(deltaTime) {
-        console.log(this.getWorldPosition())
         super.update(deltaTime);
     }
 }
