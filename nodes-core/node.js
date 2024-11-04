@@ -5,20 +5,30 @@ class Node {
         this.id = crypto.randomUUID(); // Unique identifier for each node
         this.name = "Node"; // Default name, can be changed
         this.enabled = true;
+        this.initialized = false;
     }
 
     // Lifecycle methods
-    init(gl) {
-        if (!this.enabled) return;
+    async init(gl) {
+        if (!this.enabled || this.initialized) return;
+
+        // Initialize self first (if there's any specific initialization logic)
+        await this.onInit(gl);
 
         // Initialize all children
-        for (const child of this.children.values()) {
-            child.init(gl);
-        }
+        const childInitPromises = Array.from(this.children.values()).map(child => child.init(gl));
+        await Promise.all(childInitPromises);
+
+        console.log(`Node initialized: ${this.name}`);
+        this.initialized = true;
+    }
+
+    async onInit(gl) {
+        // Placeholder for custom initialization
     }
 
     update(deltaTime) {
-        if (!this.enabled) return;
+        if (!this.enabled || !this.initialized) return;
 
         // Update all children
         for (const child of this.children.values()) {

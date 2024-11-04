@@ -3,8 +3,6 @@ import FPSCamera from './nodes-custom/fps_camera.js';
 import Model3D from "./nodes-core/model3d.js";
 import PointLight from "./nodes-core/point_light.js";
 
-let rockspire;
-
 class TestScene extends Scene {
     constructor() {
         super();
@@ -17,45 +15,99 @@ class TestScene extends Scene {
         this.camera = new FPSCamera()
             .setPosition(0, 2, 5)
             .setPerspective(80, 0.1, 1000)
-            .setMoveSpeed(5.0) // 5 units per second
+            .setMoveSpeed(5.0)
             .setLookSpeed(0.002);
         this.addChild(this.camera);
         this.activeCamera = this.camera;
 
-        // Create and set up rockspire model
-        rockspire = new Model3D(gl);
+        // Create rockspire model
+        const rockspire = new Model3D(gl)
+            .setPosition(0, 0, 0)
+            .setScale(0.5, 0.5, 0.5);
         await rockspire.loadModel('./assets/models/rockspire/rockspire.obj');
-        rockspire.setPosition(0, 0, 0);
-        rockspire.setScale(0.5, 0.5, 0.5);
-        this.addChild(rockspire);
         await rockspire.setShaderFromFile('./shaders/phong.glsl');
+        rockspire.setName("rockspire");
+        this.addChild(rockspire);
 
-        // Create and set up test cube model
-        const testCube = new Model3D(gl);
+        // Create test cube as child of rockspire
+        const testCube = new Model3D(gl)
+            .setPosition(0, 6, -10);
         await testCube.loadModel('./assets/models/test_cube/cube.obj');
-        rockspire.addChild(testCube);
-        testCube.setPosition(0, 5, -8);
         await testCube.setShaderFromFile('./shaders/toon.glsl');
+        rockspire.addChild(testCube);  // Add to rockspire before initializing
+        testCube.setName("testCube");
 
-        // Initialize models
-        await rockspire.init(gl);
-        await testCube.init(gl);
+        // Add cubes down y-axis
+        for (let i = 0; i < 3; i++) {
+            const cube = new Model3D(gl)
+                .setPosition(0, i * -2, 0);
+            await cube.loadModel('./assets/models/test_cube/cube.obj');
+            await cube.setShaderFromFile('./shaders/toon.glsl');
+            testCube.addChild(cube);
 
+        }
+
+        // Add cubes down z-axis
+        for (let i = 0; i < 6; i++) {
+            const cube = new Model3D(gl)
+                .setPosition(0, 0, i * 2);
+            await cube.loadModel('./assets/models/test_cube/cube.obj');
+            await cube.setShaderFromFile('./shaders/toon.glsl');
+            testCube.addChild(cube);
+            if (i === 5) { // Add a red light to the last cube
+                cube.setName("lightCube");
+            }
+        }
+
+        // Add point light
         const pointLight = new PointLight(gl)
-        pointLight.setPosition(0, 0 ,0)
-        pointLight.setColor(1, 1, 1)
-        pointLight.setIntensity(1)
-        pointLight.setRange(15)
-        this.camera.addChild(pointLight)
+            .setPosition(0, 0, 0)
+            .setColor(1, 1, 1)
+            .setIntensity(1)
+            .setRange(15);
+        this.camera.addChild(pointLight);
 
-        // Initialize the scene
-        super.init(gl);
+        // Add a red point light to the light cube
+        const lightCube = testCube.findByName("lightCube");
+        if (lightCube) {
+            const redLight = new PointLight(gl)
+                .setPosition(0, -2, 0)
+                .setColor(1, 0, 0)
+                .setIntensity(1)
+                .setRange(15);
+            lightCube.addChild(redLight);
+        }
+
+
+        // add gun model
+        const gun = new Model3D(gl)
+        gun.loadModel('./assets/models/gun/gun.obj');
+        gun.setShaderFromFile('./shaders/phong.glsl');
+        gun.setPosition(0.4, -0.3, -0.4);
+        gun.setScale(0.1, 0.1, 0.1);
+        this.camera.addChild(gun);
+
+
+
+        // Initialize the entire scene hierarchy
+        await super.init(gl);
     }
 
     update(deltaTime) {
         super.update(deltaTime);
-        rockspire.rotateY(0.01);
-        rockspire.move(Math.cos(performance.now() / 1000) * 0.01, Math.sin(performance.now() / 1000) * 0.01, 0);
+
+        // Find rockspire and testCube using the scene graph
+        const rockspire = this.findByName("rockspire");
+        if (rockspire) {
+            rockspire.rotateY(-0.15 * deltaTime);
+            rockspire.move(0, Math.sin(performance.now() / 1000) * deltaTime * 0.2, 0);
+
+            // TestCube should be a child of rockspire
+            const testCube = rockspire.findByName("testCube");
+            if (testCube) {
+                testCube.rotateY(0.15 * deltaTime);
+            }
+        }
     }
 }
 

@@ -124,11 +124,6 @@ class Game {
             // of seconds (e.g. velocity is units per second, not units per millisecond)
             fixedDeltaTime = this.frameInterval / 1000;
 
-            // If our delta time is more than 120% of the expected frame time, we're falling behind, clamp the deltatime
-            if (fixedDeltaTime > this.frameInterval * 1.2) {
-                fixedDeltaTime = this.frameInterval * 1.2; // TODO: I didn't actually test if this works
-            }
-
             if (!this.isPaused) {
                 if (this.activeScene) {
                     this.activeScene.update(fixedDeltaTime);
