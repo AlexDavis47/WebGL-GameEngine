@@ -35,7 +35,7 @@ class TestScene extends Scene {
         await testCube.loadModel('./assets/models/test_cube/cube.obj');
         rockspire.addChild(testCube);
         testCube.setPosition(0, 5, -8);
-        await testCube.setShaderFromFile('./shaders/red.glsl');
+        await testCube.setShaderFromFile('./shaders/toon.glsl');
 
         // Initialize models
         await rockspire.init(gl);
