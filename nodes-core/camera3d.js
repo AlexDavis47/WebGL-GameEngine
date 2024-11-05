@@ -5,22 +5,20 @@ class Camera3D extends Node3D {
         super();
         this.name = "Camera3D";
 
-        // Matrices (camera-specific)
-        this._projectionMatrix = glMatrix.mat4.create();
-        this._viewMatrix = glMatrix.mat4.create();
-
-        // Camera settings
+        // Camera settings with proper defaults
         this._isPerspective = true;
-        this._fov = 60;  // In degrees
-        this._aspect = 1.0;
+        this._fov = 90;  // In degrees
+        this._aspect = 16/9;  // Default to 16:9
         this._near = 0.1;
-        this._far = 1000.0;
+        this._far = 5000.0;
         this._orthoSize = 10;
 
-        // Matrix update flags
+        // Matrices
+        this._projectionMatrix = glMatrix.mat4.create();
+        this._viewMatrix = glMatrix.mat4.create();
         this._projectionDirty = true;
 
-        // Cached data
+        // Initialize frustum planes
         this._frustumPlanes = {
             near: glMatrix.vec4.create(),
             far: glMatrix.vec4.create(),
@@ -39,9 +37,18 @@ class Camera3D extends Node3D {
 
     updateProjectionMatrix() {
         if (this._isPerspective) {
+            const fovRad = glMatrix.glMatrix.toRadian(this._fov);
+            console.log('Updating projection matrix with:', {
+                fovDegrees: this._fov,
+                fovRadians: fovRad,
+                aspect: this._aspect,
+                near: this._near,
+                far: this._far
+            });
+
             glMatrix.mat4.perspective(
                 this._projectionMatrix,
-                this._fov * Math.PI / 180,  // Convert FOV to radians for gl-matrix
+                fovRad,
                 this._aspect,
                 this._near,
                 this._far
@@ -59,8 +66,13 @@ class Camera3D extends Node3D {
             );
         }
         this._projectionDirty = false;
-        this.updateFrustumPlanes();
+
+        // Only update frustum planes if they exist
+        if (this._frustumPlanes) {
+            this.updateFrustumPlanes();
+        }
     }
+
 
     // Camera setup
     setPerspective(fovDegrees, near, far) {
@@ -92,10 +104,15 @@ class Camera3D extends Node3D {
     }
 
     setAspectRatio(aspect) {
-        this._aspect = aspect;
-        this._projectionDirty = true;
+        if (this._aspect !== aspect) {
+            console.log('Camera: Setting aspect ratio to:', aspect);
+            this._aspect = aspect;
+            this._projectionDirty = true;
+            this.updateProjectionMatrix(); // Force immediate update
+        }
         return this;
     }
+
 
     // Matrix access
     get projectionMatrix() {
@@ -112,10 +129,15 @@ class Camera3D extends Node3D {
 
     // Frustum calculations
     updateFrustumPlanes() {
+        // Safety check
+        if (!this._frustumPlanes) {
+            console.warn('Frustum planes not initialized');
+            return;
+        }
+
         const vp = glMatrix.mat4.create();
         glMatrix.mat4.multiply(vp, this.projectionMatrix, this.viewMatrix);
 
-        // Extract the six frustum planes
         // Left plane
         this.extractFrustumPlane(vp, 3, 0, this._frustumPlanes.left);
         // Right plane
@@ -131,8 +153,15 @@ class Camera3D extends Node3D {
     }
 
     extractFrustumPlane(vp, row, col, out) {
+        // Safety check
+        if (!out) {
+            console.warn('Output vector not initialized');
+            return;
+        }
+
         const sign = Math.sign(col);
         const colAbs = Math.abs(col);
+
         out[0] = vp[row] + sign * vp[colAbs];
         out[1] = vp[row + 4] + sign * vp[colAbs + 4];
         out[2] = vp[row + 8] + sign * vp[colAbs + 8];
@@ -140,11 +169,14 @@ class Camera3D extends Node3D {
 
         // Normalize the plane
         const len = Math.sqrt(out[0] * out[0] + out[1] * out[1] + out[2] * out[2]);
-        out[0] /= len;
-        out[1] /= len;
-        out[2] /= len;
-        out[3] /= len;
+        if (len !== 0) {
+            out[0] /= len;
+            out[1] /= len;
+            out[2] /= len;
+            out[3] /= len;
+        }
     }
+
 
     // Frustum tests
     isPointVisible(point) {

@@ -96,15 +96,18 @@ class Game {
         const containerHeight = window.innerHeight;
         const pixelRatio = window.devicePixelRatio || 1;
 
-        // Use container dimensions directly for canvas resolution
+        console.log('Container dimensions:', containerWidth, 'x', containerHeight);
+        console.log('Target aspect ratio:', this._targetAspectRatio);
+
+        // Set canvas resolution
         this._canvas.width = containerWidth * pixelRatio;
         this._canvas.height = containerHeight * pixelRatio;
 
-        // Set style size to container dimensions
+        // Set canvas style
         this._canvas.style.width = `${containerWidth}px`;
         this._canvas.style.height = `${containerHeight}px`;
 
-        // Calculate viewport dimensions to maintain aspect ratio
+        // Calculate viewport dimensions
         let viewportWidth, viewportHeight;
         const containerAspectRatio = containerWidth / containerHeight;
 
@@ -122,12 +125,17 @@ class Game {
         const viewportX = (this._canvas.width - viewportWidth) / 2;
         const viewportY = (this._canvas.height - viewportHeight) / 2;
 
+        console.log('Viewport dimensions:', viewportWidth, 'x', viewportHeight);
+        console.log('Viewport aspect ratio:', viewportWidth / viewportHeight);
+
         // Set GL viewport
         this._gl.viewport(viewportX, viewportY, viewportWidth, viewportHeight);
 
-        // Update camera if it exists
+        // Update camera with the correct aspect ratio
         if (this._activeScene?.activeCamera) {
-            this._activeScene.activeCamera.updateProjectionMatrix(this._gl);
+            const viewportAspectRatio = viewportWidth / viewportHeight;
+            console.log('Setting camera aspect ratio to:', viewportAspectRatio);
+            this._activeScene.activeCamera.setAspectRatio(viewportAspectRatio);
         }
     }
 
