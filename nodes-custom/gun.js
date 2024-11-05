@@ -127,17 +127,23 @@ class Gun extends Model3D {
         this._targetRotation.x += this._config.RECOIL.SUSTAINED;
 
         const bullet = new Bullet(this._gl);
-        const worldPos = this.getPositionWorld();
 
-        // Set bullet position
+        // Get gun's world position and forward direction
+        const worldPos = this.getPositionWorld();
+        const forward = this.getForwardVector();
+
+        // Add bullet to scene first
+        this.getRootNode().addChild(bullet);
+
+        // Now set its position and orientation
         bullet.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
 
-        // Set bullet rotation to match gun's direction (forward vector of the gun)
-        const forward = this.getForwardVectorWorld();
-        bullet.setForwardDirection(forward);  // Assuming Bullet has a setForwardDirection method
+        // Calculate the target point by adding the forward vector to the position
+        const targetPoint = glMatrix.vec3.create();
+        glMatrix.vec3.add(targetPoint, worldPos, forward);
 
-        // Add to scene
-        this.getRootNode().addChild(bullet);
+        // Make bullet look at the target point
+        bullet.lookAt(targetPoint);
     }
 
     // Configuration setters

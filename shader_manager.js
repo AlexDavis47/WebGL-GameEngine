@@ -1,5 +1,3 @@
-// shader_manager.js
-
 import Light from "./nodes-core/light.js";
 
 class ShaderManager {
@@ -282,7 +280,7 @@ class ShaderManager {
                 gl.uniform3fv(uniforms.get(`${prefix}.position`), new Float32Array(light.getPositionWorld()));
             }
             if (uniforms.get(`${prefix}.direction`)) {
-                gl.uniform3fv(uniforms.get(`${prefix}.direction`), new Float32Array(light.getWorldForwardVector()));
+                gl.uniform3fv(uniforms.get(`${prefix}.direction`), new Float32Array(light.getForwardVector()));
             }
             if (uniforms.get(`${prefix}.color`)) {
                 gl.uniform3fv(uniforms.get(`${prefix}.color`), new Float32Array(lightData.color));

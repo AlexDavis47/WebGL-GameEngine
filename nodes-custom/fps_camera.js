@@ -46,8 +46,8 @@ class FPSCamera extends Camera3D {
         const movement = glMatrix.vec3.create();
 
         // Get world-space movement vectors
-        this.getWorldForwardVector(this._forward);
-        this.getWorldRightVector(this._right);
+        this.getForwardVector(this._forward);
+        this.getRightVector(this._right);
 
         // Zero out Y component for forward and right vectors
         // This keeps movement horizontal regardless of where we're looking

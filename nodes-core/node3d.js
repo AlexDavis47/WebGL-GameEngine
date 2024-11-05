@@ -1,4 +1,5 @@
 import Node from './node.js';
+import QuaternionUtils from "../util/quaternion_utils.js";
 
 class Node3D extends Node {
     constructor() {
@@ -7,21 +8,21 @@ class Node3D extends Node {
 
         // Transform components
         this._localPosition = glMatrix.vec3.create();
-        this._localRotation = glMatrix.quat.create();
+        this._localRotationQuat = glMatrix.quat.create();
         this._localScale = glMatrix.vec3.fromValues(1, 1, 1);
 
-        // World transform components (read-only)
+        // World transform components
         this._worldPosition = glMatrix.vec3.create();
-        this._worldRotation = glMatrix.quat.create();
+        this._worldRotationQuat = glMatrix.quat.create();
         this._worldScale = glMatrix.vec3.fromValues(1, 1, 1);
 
         // Matrices
         this._localMatrix = glMatrix.mat4.create();
         this._worldMatrix = glMatrix.mat4.create();
-        this._dirty = true;
-
-        // Cache for inverse world matrix (lazy computed)
         this._inverseWorldMatrix = glMatrix.mat4.create();
+
+        // Flags
+        this._dirty = true;
         this._inverseWorldDirty = true;
     }
 
@@ -79,65 +80,44 @@ class Node3D extends Node {
         return this;
     }
 
-    setPositionWorldX(x) {
-        const worldPos = this.getPositionWorld();
-        worldPos[0] = x;
-        return this.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
-    }
-
-    setPositionWorldY(y) {
-        const worldPos = this.getPositionWorld();
-        worldPos[1] = y;
-        return this.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
-    }
-
-    setPositionWorldZ(z) {
-        const worldPos = this.getPositionWorld();
-        worldPos[2] = z;
-        return this.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
-    }
-
     getPositionWorld() {
         this.updateWorldMatrix();
         return glMatrix.vec3.clone(this._worldPosition);
     }
 
-    getPositionWorldX() {
-        return this.getPositionWorld()[0];
-    }
-
-    getPositionWorldY() {
-        return this.getPositionWorld()[1];
-    }
-
-    getPositionWorldZ() {
-        return this.getPositionWorld()[2];
-    }
-
-    // Local Rotation Methods (Ensure all rotation uses radians)
+    // Local Rotation Methods (in degrees)
     setRotation(x, y, z) {
-        glMatrix.quat.fromEuler(this._localRotation, x, y, z);
+        const xRad = QuaternionUtils.toRadians(x);
+        const yRad = QuaternionUtils.toRadians(y);
+        const zRad = QuaternionUtils.toRadians(z);
+
+        this._localRotationQuat = QuaternionUtils.fromEulerRadians(xRad, yRad, zRad);
         this.setDirty();
         return this;
     }
 
-    setRotationX(rad) {
+    setRotationX(degrees) {
         const [_, y, z] = this.getRotation();
-        return this.setRotation(rad, y, z);
+        return this.setRotation(degrees, y, z);
     }
 
-    setRotationY(rad) {
+    setRotationY(degrees) {
         const [x, _, z] = this.getRotation();
-        return this.setRotation(x, rad, z);
+        return this.setRotation(x, degrees, z);
     }
 
-    setRotationZ(rad) {
+    setRotationZ(degrees) {
         const [x, y, _] = this.getRotation();
-        return this.setRotation(x, y, rad);
+        return this.setRotation(x, y, degrees);
     }
 
     getRotation() {
-        return glMatrix.quat.clone(this._localRotation);
+        const [x, y, z] = QuaternionUtils.toEulerRadians(this._localRotationQuat);
+        return [
+            QuaternionUtils.toDegrees(x),
+            QuaternionUtils.toDegrees(y),
+            QuaternionUtils.toDegrees(z)
+        ];
     }
 
     getRotationX() {
@@ -152,79 +132,36 @@ class Node3D extends Node {
         return this.getRotation()[2];
     }
 
-    // World Rotation Methods (in radians)
+    // World Rotation Methods (in degrees)
     setRotationWorld(x, y, z) {
         if (!this.parent) {
             return this.setRotation(x, y, z);
         }
 
-        const worldRot = glMatrix.quat.create();
-        glMatrix.quat.fromEuler(worldRot, x, y, z);  // This expects radians
+        const xRad = QuaternionUtils.toRadians(x);
+        const yRad = QuaternionUtils.toRadians(y);
+        const zRad = QuaternionUtils.toRadians(z);
+
+        const worldRot = QuaternionUtils.fromEulerRadians(xRad, yRad, zRad);
         const parentInverseRot = glMatrix.quat.create();
-        glMatrix.quat.conjugate(parentInverseRot, this.parent.getRotationWorldQuat());
-        glMatrix.quat.multiply(this._localRotation, parentInverseRot, worldRot);
+        glMatrix.quat.conjugate(parentInverseRot, this.parent._worldRotationQuat);
+        glMatrix.quat.multiply(this._localRotationQuat, parentInverseRot, worldRot);
+
         this.setDirty();
         return this;
     }
 
-    setRotationWorldX(rad) {
-        const [_, y, z] = this.getRotationWorld();
-        return this.setRotationWorld(rad, y, z);
-    }
-
-    setRotationWorldY(rad) {
-        const [x, _, z] = this.getRotationWorld();
-        return this.setRotationWorld(x, rad, z);
-    }
-
-    setRotationWorldZ(rad) {
-        const [x, y, _] = this.getRotationWorld();
-        return this.setRotationWorld(x, y, rad);
-    }
-
-    getRotationWorld() {
-        return glMatrix.quat.clone(this.getRotationWorldQuat());
-    }
-
-    // Relative transform methods
-    rotate(x, y, z) {
-        const rotation = glMatrix.quat.create();
-        glMatrix.quat.fromEuler(rotation, x, y, z);  // Expecting radians here
-        glMatrix.quat.multiply(this._localRotation, this._localRotation, rotation);
-        this.setDirty();
-        return this;
-    }
-
-    rotateAround(point, axis, rad) {
-        const worldPos = this.getPositionWorld();
-
-        // Create rotation quaternion
-        const rotation = glMatrix.quat.create();
-        glMatrix.quat.setAxisAngle(rotation, axis, rad); // Ensure rad is used
-
-        // Translate point to origin
-        glMatrix.vec3.subtract(worldPos, worldPos, point);
-
-        // Rotate
-        glMatrix.vec3.transformQuat(worldPos, worldPos, rotation);
-
-        // Translate back
-        glMatrix.vec3.add(worldPos, worldPos, point);
-
-        // Set new position and apply rotation
-        this.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
-        const currentRot = this.getRotationWorldQuat();
-        glMatrix.quat.multiply(currentRot, rotation, currentRot);
-
-        return this;
-    }
-
-    getRotationWorldQuat() {
+    getWorldRotation() {
         this.updateWorldMatrix();
-        return glMatrix.quat.clone(this._worldRotation);
+        const [x, y, z] = QuaternionUtils.toEulerRadians(this._worldRotationQuat);
+        return [
+            QuaternionUtils.toDegrees(x),
+            QuaternionUtils.toDegrees(y),
+            QuaternionUtils.toDegrees(z)
+        ];
     }
 
-    // Scale Methods (local only, world scale rarely needed)
+    // Scale Methods
     setScale(x, y, z) {
         glMatrix.vec3.set(this._localScale, x, y, z);
         this.setDirty();
@@ -269,10 +206,10 @@ class Node3D extends Node {
         return this._localScale[2];
     }
 
-    // Relative transform methods
+    // Relative Transform Methods
     translate(x, y, z) {
         const translation = glMatrix.vec3.fromValues(x, y, z);
-        glMatrix.vec3.transformQuat(translation, translation, this._localRotation);
+        glMatrix.vec3.transformQuat(translation, translation, this._localRotationQuat);
         glMatrix.vec3.add(this._localPosition, this._localPosition, translation);
         this.setDirty();
         return this;
@@ -284,75 +221,84 @@ class Node3D extends Node {
         return this;
     }
 
+    rotate(x, y, z) {
+        const xRad = QuaternionUtils.toRadians(x);
+        const yRad = QuaternionUtils.toRadians(y);
+        const zRad = QuaternionUtils.toRadians(z);
+
+        const rotation = QuaternionUtils.fromEulerRadians(xRad, yRad, zRad);
+        glMatrix.quat.multiply(this._localRotationQuat, this._localRotationQuat, rotation);
+
+        this.setDirty();
+        return this;
+    }
+
+    rotateAround(point, axis, degrees) {
+        const rad = QuaternionUtils.toRadians(degrees);
+        const worldPos = this.getPositionWorld();
+
+        const rotation = glMatrix.quat.create();
+        glMatrix.quat.setAxisAngle(rotation, axis, rad);
+
+        glMatrix.vec3.subtract(worldPos, worldPos, point);
+        glMatrix.vec3.transformQuat(worldPos, worldPos, rotation);
+        glMatrix.vec3.add(worldPos, worldPos, point);
+
+        this.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
+
+        const worldRot = this._worldRotationQuat;
+        glMatrix.quat.multiply(worldRot, rotation, worldRot);
+
+        return this;
+    }
+
     lookAt(target, up = glMatrix.vec3.fromValues(0, 1, 0)) {
         const worldPos = this.getPositionWorld();
         const lookAtMatrix = glMatrix.mat4.create();
-
         glMatrix.mat4.targetTo(lookAtMatrix, worldPos, target, up);
+
         const worldRot = glMatrix.quat.create();
         glMatrix.mat4.getRotation(worldRot, lookAtMatrix);
 
         if (this.parent) {
             const parentInverseRot = glMatrix.quat.create();
-            glMatrix.quat.conjugate(parentInverseRot, this.parent.getRotationWorldQuat());
-            glMatrix.quat.multiply(this._localRotation, parentInverseRot, worldRot);
+            glMatrix.quat.conjugate(parentInverseRot, this.parent._worldRotationQuat);
+            glMatrix.quat.multiply(this._localRotationQuat, parentInverseRot, worldRot);
         } else {
-            glMatrix.quat.copy(this._localRotation, worldRot);
+            glMatrix.quat.copy(this._localRotationQuat, worldRot);
         }
 
         this.setDirty();
         return this;
     }
 
+    // Direction Vectors
     getForwardVector(out = glMatrix.vec3.create()) {
         const forward = glMatrix.vec3.fromValues(0, 0, -1);
-        glMatrix.vec3.transformQuat(out, forward, this._localRotation);
-        return out;
-    }
-
-    getForwardVectorWorld(out = glMatrix.vec3.create()) {
-        const forward = glMatrix.vec3.fromValues(0, 0, -1);
-        glMatrix.vec3.transformQuat(out, forward, this._worldRotation);
+        this.updateWorldMatrix();
+        glMatrix.vec3.transformQuat(out, forward, this._worldRotationQuat);
         return out;
     }
 
     getRightVector(out = glMatrix.vec3.create()) {
         const right = glMatrix.vec3.fromValues(1, 0, 0);
-        glMatrix.vec3.transformQuat(out, right, this._localRotation);
+        this.updateWorldMatrix();
+        glMatrix.vec3.transformQuat(out, right, this._worldRotationQuat);
         return out;
     }
 
     getUpVector(out = glMatrix.vec3.create()) {
         const up = glMatrix.vec3.fromValues(0, 1, 0);
-        glMatrix.vec3.transformQuat(out, up, this._localRotation);
+        this.updateWorldMatrix();
+        glMatrix.vec3.transformQuat(out, up, this._worldRotationQuat);
         return out;
     }
 
-    // And optionally, world-space versions:
-    getWorldForwardVector(out = glMatrix.vec3.create()) {
-        const forward = glMatrix.vec3.fromValues(0, 0, -1);
-        glMatrix.vec3.transformQuat(out, forward, this._worldRotation);
-        return out;
-    }
-
-    getWorldRightVector(out = glMatrix.vec3.create()) {
-        const right = glMatrix.vec3.fromValues(1, 0, 0);
-        glMatrix.vec3.transformQuat(out, right, this._worldRotation);
-        return out;
-    }
-
-    getWorldUpVector(out = glMatrix.vec3.create()) {
-        const up = glMatrix.vec3.fromValues(0, 1, 0);
-        glMatrix.vec3.transformQuat(out, up, this._worldRotation);
-        return out;
-    }
-
-    // Matrix management
+    // Matrix Management
     setDirty() {
         this._dirty = true;
         this._inverseWorldDirty = true;
 
-        // Mark all children as dirty
         for (const child of this.children.values()) {
             if (child instanceof Node3D) {
                 child.setDirty();
@@ -363,7 +309,7 @@ class Node3D extends Node {
     updateLocalMatrix() {
         glMatrix.mat4.fromRotationTranslationScale(
             this._localMatrix,
-            this._localRotation,
+            this._localRotationQuat,
             this._localPosition,
             this._localScale
         );
@@ -379,15 +325,13 @@ class Node3D extends Node {
             const parentWorld = this.parent.worldMatrix;
             glMatrix.mat4.multiply(this._worldMatrix, parentWorld, this._localMatrix);
 
-            // Extract world transform components
             glMatrix.mat4.getTranslation(this._worldPosition, this._worldMatrix);
-            glMatrix.mat4.getRotation(this._worldRotation, this._worldMatrix);
+            glMatrix.mat4.getRotation(this._worldRotationQuat, this._worldMatrix);
             glMatrix.mat4.getScaling(this._worldScale, this._worldMatrix);
         } else {
-            // Root node - world = local
             glMatrix.mat4.copy(this._worldMatrix, this._localMatrix);
             glMatrix.vec3.copy(this._worldPosition, this._localPosition);
-            glMatrix.quat.copy(this._worldRotation, this._localRotation);
+            glMatrix.quat.copy(this._worldRotationQuat, this._localRotationQuat);
             glMatrix.vec3.copy(this._worldScale, this._localScale);
         }
     }
@@ -411,29 +355,6 @@ class Node3D extends Node {
             this._inverseWorldDirty = false;
         }
         return this._inverseWorldMatrix;
-    }
-
-    // Node hierarchy management overrides
-    addChild(node) {
-        super.addChild(node);
-        if (node instanceof Node3D) {
-            node.setDirty();
-        }
-        return this;
-    }
-
-    removeChild(node) {
-        if (node instanceof Node3D) {
-            // Convert child's transforms to world space before removal
-            const worldPos = node.getPositionWorld();
-            const worldRot = node.getRotationWorld();
-            super.removeChild(node);
-            node.setPositionWorld(...worldPos);
-            node.setRotationWorld(...worldRot);
-        } else {
-            super.removeChild(node);
-        }
-        return this;
     }
 }
 

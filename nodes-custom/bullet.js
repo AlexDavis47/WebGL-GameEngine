@@ -4,7 +4,7 @@ class Bullet extends Model3D {
     constructor(gl) {
         super(gl);
         this.name = "Bullet";
-        this._speed = 10.0;  // Bullet speed, tune as needed
+        this._speed = 10.0;
         this._maxLifeTime = 2.0;
         this._currentLifeTime = this._maxLifeTime;
     }
@@ -33,17 +33,11 @@ class Bullet extends Model3D {
     }
 
     updateMovement(deltaTime) {
-        const forward = this._forwardDirection; // Get world-space forward vector
+        const forward = this.getForwardVector();
         const movement = forward.map(component => component * this._speed * deltaTime);
-        this.translate(...movement); // Move the bullet in the forward direction
+        this.translateWorld(...movement); // Use world-space translation for consistent movement
     }
 
-    setForwardDirection(direction) {
-        // Normalize direction and set it to the bullet's movement direction
-        const normalizedDirection = glMatrix.vec3.create();
-        glMatrix.vec3.normalize(normalizedDirection, direction);
-        this._forwardDirection = normalizedDirection;
-    }
 }
 
 export default Bullet;
