@@ -10,7 +10,7 @@ class FPSCamera extends Camera3D {
         this._moveSpeed = 5.0;
         this._lookSpeed = 360000;  // Changed to be more intuitive in degrees
 
-        // Euler angles for rotation (stored in radians)
+        // Euler angles for rotation in degrees?
         this._pitch = 0;
         this._yaw = 0;
 
@@ -21,8 +21,8 @@ class FPSCamera extends Camera3D {
 
         // Movement constraints (in radians)
         this._pitchLimit = {
-            min: -Math.PI / 2,
-            max: Math.PI / 2
+            min: -90,
+            max: 90
         };
     }
 
@@ -102,12 +102,6 @@ class FPSCamera extends Camera3D {
                 this._pitchLimit.min,
                 Math.min(this._pitchLimit.max, this._pitch)
             );
-
-            console.log("pitch limit: ", this._pitchLimit.min, this._pitchLimit.max);
-
-
-            console.log("yaw: ", this._yaw, "pitch: ", this._pitch);
-
 
             // Values are already in radians for Node3D
             this.setRotation(this._pitch, this._yaw, 0);

@@ -18,7 +18,7 @@ class TestScene extends Scene {
             .setPositionX(0)
             .setPositionY(2)
             .setPositionZ(5)
-            .setPerspective(60, 0.1, 5000)
+            .setPerspective(90, 0.1, 5000)
             .setMoveSpeed(5.0)
             .setLookSpeed(5);
         this.addChild(this._camera);
@@ -129,6 +129,7 @@ class TestScene extends Scene {
             if (testCube) {
                 testCube.rotate(0, 25 * deltaTime, 0);
             }
+
         }
 
         super.update(deltaTime);

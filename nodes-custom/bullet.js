@@ -4,9 +4,7 @@ class Bullet extends Model3D {
     constructor(gl) {
         super(gl);
         this.name = "Bullet";
-
-        // Bullet properties
-        this._speed = 10.0;
+        this._speed = 10.0;  // Bullet speed, tune as needed
         this._maxLifeTime = 2.0;
         this._currentLifeTime = this._maxLifeTime;
     }
@@ -14,11 +12,11 @@ class Bullet extends Model3D {
     async onInit(gl) {
         await super.onInit(gl);
         await this.loadModel('./assets/models/bullet/bullet.obj');
-        await this.setShaderFromFile('./shaders/phong.glsl');  // Assuming you want to use phong shader
+        await this.setShaderFromFile('./shaders/phong.glsl');
+        this.setScale(0.1, 0.1, 0.1);
     }
 
     update(deltaTime) {
-        // Handle lifetime first
         if (this.updateLifetime(deltaTime)) {
             super.update(deltaTime);
             this.updateMovement(deltaTime);
@@ -27,44 +25,24 @@ class Bullet extends Model3D {
 
     updateLifetime(deltaTime) {
         this._currentLifeTime -= deltaTime;
-
         if (this._currentLifeTime <= 0) {
             this.destroy();
             return false;
         }
-
         return true;
     }
 
     updateMovement(deltaTime) {
-        const forward = this.getForwardVector();
+        const forward = this._forwardDirection; // Get world-space forward vector
         const movement = forward.map(component => component * this._speed * deltaTime);
-        this.translate(...movement);
+        this.translate(...movement); // Move the bullet in the forward direction
     }
 
-    // Configuration methods
-    setSpeed(speed) {
-        this._speed = speed;
-        return this;
-    }
-
-    setLifeTime(time) {
-        this._maxLifeTime = time;
-        this._currentLifeTime = time;
-        return this;
-    }
-
-    // Getters for bullet properties
-    get speed() {
-        return this._speed;
-    }
-
-    get lifeTime() {
-        return this._currentLifeTime;
-    }
-
-    get maxLifeTime() {
-        return this._maxLifeTime;
+    setForwardDirection(direction) {
+        // Normalize direction and set it to the bullet's movement direction
+        const normalizedDirection = glMatrix.vec3.create();
+        glMatrix.vec3.normalize(normalizedDirection, direction);
+        this._forwardDirection = normalizedDirection;
     }
 }
 

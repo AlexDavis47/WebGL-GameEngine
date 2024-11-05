@@ -114,7 +114,7 @@ class Node3D extends Node {
         return this.getPositionWorld()[2];
     }
 
-    // Local Rotation Methods
+    // Local Rotation Methods (Ensure all rotation uses radians)
     setRotation(x, y, z) {
         glMatrix.quat.fromEuler(this._localRotation, x, y, z);
         this.setDirty();
@@ -137,9 +137,7 @@ class Node3D extends Node {
     }
 
     getRotation() {
-        const euler = glMatrix.vec3.create();
-        glMatrix.quat.getEuler(euler, this._localRotation);
-        return euler;
+        return glMatrix.quat.clone(this._localRotation);
     }
 
     getRotationX() {
@@ -161,7 +159,7 @@ class Node3D extends Node {
         }
 
         const worldRot = glMatrix.quat.create();
-        glMatrix.quat.fromEuler(worldRot, x, y, z);
+        glMatrix.quat.fromEuler(worldRot, x, y, z);  // This expects radians
         const parentInverseRot = glMatrix.quat.create();
         glMatrix.quat.conjugate(parentInverseRot, this.parent.getRotationWorldQuat());
         glMatrix.quat.multiply(this._localRotation, parentInverseRot, worldRot);
@@ -185,16 +183,13 @@ class Node3D extends Node {
     }
 
     getRotationWorld() {
-        this.updateWorldMatrix();
-        const euler = glMatrix.vec3.create();
-        glMatrix.quat.getEuler(euler, this._worldRotation);
-        return euler;
+        return glMatrix.quat.clone(this.getRotationWorldQuat());
     }
 
     // Relative transform methods
     rotate(x, y, z) {
         const rotation = glMatrix.quat.create();
-        glMatrix.quat.fromEuler(rotation, x, y, z);
+        glMatrix.quat.fromEuler(rotation, x, y, z);  // Expecting radians here
         glMatrix.quat.multiply(this._localRotation, this._localRotation, rotation);
         this.setDirty();
         return this;
@@ -205,7 +200,7 @@ class Node3D extends Node {
 
         // Create rotation quaternion
         const rotation = glMatrix.quat.create();
-        glMatrix.quat.setAxisAngle(rotation, axis, rad);
+        glMatrix.quat.setAxisAngle(rotation, axis, rad); // Ensure rad is used
 
         // Translate point to origin
         glMatrix.vec3.subtract(worldPos, worldPos, point);
@@ -312,6 +307,12 @@ class Node3D extends Node {
     getForwardVector(out = glMatrix.vec3.create()) {
         const forward = glMatrix.vec3.fromValues(0, 0, -1);
         glMatrix.vec3.transformQuat(out, forward, this._localRotation);
+        return out;
+    }
+
+    getForwardVectorWorld(out = glMatrix.vec3.create()) {
+        const forward = glMatrix.vec3.fromValues(0, 0, -1);
+        glMatrix.vec3.transformQuat(out, forward, this._worldRotation);
         return out;
     }
 
