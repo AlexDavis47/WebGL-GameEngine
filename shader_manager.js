@@ -86,6 +86,9 @@ class ShaderManager {
             // Light uniforms
             uniform Light u_lights[8];  // Increased size to handle all types
             uniform int u_numLights;
+            
+            // Time uniform
+            uniform float u_time;
         
             // Output color
             out vec4 fragColor;
@@ -233,6 +236,8 @@ class ShaderManager {
         this.setLightUniforms(program, scene);
         // Material
         this.setMaterialUniforms(program, model.material);
+        // Custom uniforms
+        this.setCustomUniforms(program);
     }
 
     setTransformUniforms(program, camera, model) {
@@ -308,6 +313,15 @@ class ShaderManager {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, material.texture);
             gl.uniform1i(uniforms.get('u_mainTexture'), 0);
+        }
+    }
+
+    setCustomUniforms(program) {
+        const { uniforms } = program;
+        const gl = this.gl;
+
+        if (uniforms.get('u_time')) {
+            gl.uniform1f(uniforms.get('u_time'), performance.now() / 1000.0);
         }
     }
 

@@ -28,8 +28,8 @@ class FPSCamera extends Camera3D {
 
 
 
-    async onInit(gl) {
-        await super.onInit(gl);
+    onInit(gl) {
+        super.onInit(gl);
     }
 
     update(deltaTime) {

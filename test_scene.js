@@ -11,7 +11,7 @@ class TestScene extends Scene {
         this._camera = null;
     }
 
-    async init(gl) {
+    init(gl) {
         // Create and set up camera
         this._camera = new FPSCamera();
         this._camera
@@ -24,6 +24,17 @@ class TestScene extends Scene {
         this.addChild(this._camera);
         this.setActiveCamera(this._camera);
 
+        this.setAmbientLight(1, 1, 1);
+
+
+        const ocean = new Model3D(gl);
+        ocean.loadModel('./assets/models/ocean/ocean.obj');
+        ocean.setShaderFromFile('./shaders/water.glsl');
+        ocean.setPosition(0, -1, 0);
+        ocean.setScale(10, 10, 10);
+        this.addChild(ocean);
+
+
         // Create rockspire model
         const rockspire = new Model3D(gl);
         rockspire
@@ -32,8 +43,8 @@ class TestScene extends Scene {
             .setPositionZ(0)
             .setScaleUniform(0.5)
             .setName("rockspire");
-        await rockspire.loadModel('./assets/models/rockspire/rockspire.obj');
-        await rockspire.setShaderFromFile('./shaders/phong.glsl');
+        rockspire.loadModel('./assets/models/rockspire/rockspire.obj');
+        rockspire.setShaderFromFile('./shaders/phong.glsl');
         this.addChild(rockspire);
 
         // Create test cube as child of rockspire
@@ -43,8 +54,8 @@ class TestScene extends Scene {
             .setPositionY(6)
             .setPositionZ(-10)
             .setName("testCube");
-        await testCube.loadModel('./assets/models/test_cube/cube.obj');
-        await testCube.setShaderFromFile('./shaders/toon.glsl');
+        testCube.loadModel('./assets/models/test_cube/cube.obj');
+        testCube.setShaderFromFile('./shaders/toon.glsl');
         rockspire.addChild(testCube);
 
         // Add cubes down y-axis
@@ -54,8 +65,8 @@ class TestScene extends Scene {
                 .setPositionX(0)
                 .setPositionY(i * -2)
                 .setPositionZ(0);
-            await cube.loadModel('./assets/models/test_cube/cube.obj');
-            await cube.setShaderFromFile('./shaders/toon.glsl');
+            cube.loadModel('./assets/models/test_cube/cube.obj');
+            cube.setShaderFromFile('./shaders/toon.glsl');
             testCube.addChild(cube);
         }
 
@@ -66,8 +77,8 @@ class TestScene extends Scene {
                 .setPositionX(0)
                 .setPositionY(0)
                 .setPositionZ(i * 2);
-            await cube.loadModel('./assets/models/test_cube/cube.obj');
-            await cube.setShaderFromFile('./shaders/toon.glsl');
+            cube.loadModel('./assets/models/test_cube/cube.obj');
+            cube.setShaderFromFile('./shaders/toon.glsl');
             testCube.addChild(cube);
 
             if (i === 5) {
@@ -110,7 +121,7 @@ class TestScene extends Scene {
             .setScaleUniform(0.1);
 
         // Initialize the scene hierarchy
-        await super.init(gl);
+        super.init(gl);
     }
 
     update(deltaTime) {

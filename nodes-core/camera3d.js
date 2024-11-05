@@ -5,7 +5,6 @@ class Camera3D extends Node3D {
         super();
         this.name = "Camera3D";
 
-        // Camera settings with proper defaults
         this._isPerspective = true;
         this._fov = 90;  // In degrees
         this._aspect = 16/9;  // Default to 16:9

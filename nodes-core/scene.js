@@ -32,7 +32,7 @@ class Scene extends Node {
     }
 
     // Scene initialization
-    async init(gl) {
+    init(gl) {
         if (!gl) {
             throw new Error("Scene requires a valid WebGL context for initialization");
         }
@@ -49,7 +49,7 @@ class Scene extends Node {
         }
 
         // Initialize all nodes in the scene
-        await super.init(gl);
+        super.init(gl);
     }
 
     setupGLState() {

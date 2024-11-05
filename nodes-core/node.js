@@ -24,19 +24,19 @@ class Node {
     }
 
     // Lifecycle methods
-    async init(gl) {
+    init(gl) {
         if (!this._enabled || this._initialized || this._markedForDeletion) return;
 
         try {
             // Initialize self first
-            await this.onInit(gl);
+            this.onInit(gl);
 
             // Initialize all children
             const childInitPromises = Array.from(this.children.values())
                 .filter(child => !child.isDestroyed)
                 .map(child => child.init(gl));
 
-            await Promise.all(childInitPromises);
+            Promise.all(childInitPromises);
 
             this._initialized = true;
             this.processDeferredOperations();
@@ -46,7 +46,7 @@ class Node {
         }
     }
 
-    async onInit(gl) {
+    onInit(gl) {
         // Override in derived classes
     }
 
