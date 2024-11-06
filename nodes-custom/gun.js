@@ -37,6 +37,16 @@ class Gun extends Model3D {
             },
             RETURN_RATE: 0.95     // Rate at which target rotation returns to center
         };
+
+        this.audio = new Audio();
+        this.audio.volume = 0.3;
+    }
+
+    playSound(src) {
+        // Pause any currently playing sound
+        this.audio.pause();
+        this.audio.currentTime = 0;  // Reset time to start of the sound
+        this.audio.play();
     }
 
     onInit(gl) {
@@ -145,6 +155,8 @@ class Gun extends Model3D {
         bullet.translate(0.1, 0.1, -0.5);
 
         this.getRootNode().addChild(bullet);
+
+        this.playSound('./assets/sounds/bullet.mp3');
     }
 
     // Configuration setters
