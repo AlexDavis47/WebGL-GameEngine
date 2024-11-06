@@ -46,6 +46,9 @@ class Gun extends Model3D {
         // Pause any currently playing sound
         this.audio.pause();
         this.audio.currentTime = 0;  // Reset time to start of the sound
+    
+        // Update the audio source and play
+        this.audio.src = src;
         this.audio.play();
     }
 
