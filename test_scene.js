@@ -55,7 +55,7 @@ class TestScene extends Scene {
             .setPositionX(0.4)
             .setPositionY(-0.3)
             .setPositionZ(-0.4)
-            .setScaleUniform(0.1);
+            .setScaleUniform(0.05);
 
         // Initialize the scene hierarchy
         super.init(gl);

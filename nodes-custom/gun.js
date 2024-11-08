@@ -155,7 +155,7 @@ class Gun extends Model3D {
         // Make bullet look at the target point
         bullet.lookAt(targetPoint);
 
-        bullet.translate(0.1, 0.1, -0.5);
+        bullet.translate(0.1, 0.15, -0.8);
 
         this.getRootNode().addChild(bullet);
 
