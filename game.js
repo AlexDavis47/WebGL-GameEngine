@@ -2,6 +2,7 @@ import TestScene from './test_scene.js';
 import ShaderManager from './shader_manager.js';
 import { defaultVertexShader, defaultFragmentShader } from './default_shaders.js';
 
+
 class Game {
     constructor(options = {}) {
         // Canvas setup
@@ -27,16 +28,19 @@ class Game {
         this._targetAspectRatio = options.aspectRatio || 16/9;
         this._pixelsPerUnit = options.pixelsPerUnit || 100;
 
-        this.init();
+        this.init().then(r => console.log('Game initialized'));
     }
 
-    init() {
+    async init() {
         // Initialize WebGL context
         this._gl = this._canvas.getContext('webgl2');
+        global.gl = this._gl;
         if (!this._gl) {
             console.error('WebGL2 not supported');
             return;
         }
+
+        await Ammo();
 
         // Initialize shader manager
         this.initializeShaderManager();
@@ -48,10 +52,10 @@ class Game {
         this.setupEvents();
 
         // Do initial resize
-        this.resizeCanvas();  // Add this line before scene creation
+        this.resizeCanvas();
 
         // Create and setup initial scene
-        this.createInitialScene();
+        await this.createInitialScene();  // Make this async
 
         // Start game loop
         this._isRunning = true;
@@ -82,9 +86,9 @@ class Game {
         window.addEventListener('resize', this.onWindowResize.bind(this));
     }
 
-    createInitialScene() {
+    async createInitialScene() {
         const scene = new TestScene();
-        this.setScene(scene);
+        await this.setScene(scene);
     }
 
     onWindowResize() {
@@ -161,17 +165,19 @@ class Game {
             this._activeScene.render(this._gl);
         }
 
+        updateInput();
+
         this._lastFrameTime = currentTime;
         requestAnimationFrame(this.gameLoop.bind(this));
     }
 
-    setScene(scene) {
+    async setScene(scene) {
         if (this._activeScene) {
             this._activeScene.destroy();
         }
         this._activeScene = scene;
         if (this._activeScene) {
-            this._activeScene.init(this._gl);
+            await scene.init(this._gl);  // Wait for scene initialization
         }
     }
 

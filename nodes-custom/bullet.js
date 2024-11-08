@@ -16,9 +16,9 @@ class Bullet extends Model3D {
         this.setScale(0.1, 0.1, 0.1);
     }
 
-    update(deltaTime) {
+    async update(deltaTime) {
         if (this.updateLifetime(deltaTime)) {
-            super.update(deltaTime);
+            await super.update(deltaTime);
             this.updateMovement(deltaTime);
         }
     }

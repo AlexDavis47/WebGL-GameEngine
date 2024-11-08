@@ -24,6 +24,7 @@ class Node3D extends Node {
         // Flags
         this._dirty = true;
         this._inverseWorldDirty = true;
+        this._isRoot = false;
     }
 
     // Local Position Methods
@@ -73,10 +74,25 @@ class Node3D extends Node {
             return this.setPosition(x, y, z);
         }
 
+        // Check if parent is initialized
+        if (!this.parent.initialized) {
+            console.warn('Parent not initialized, setting local position directly');
+            return this.setPosition(x, y, z);
+        }
+
         const worldPos = glMatrix.vec3.fromValues(x, y, z);
-        const parentInverse = this.parent.inverseWorldMatrix;
-        glMatrix.vec3.transformMat4(this._localPosition, worldPos, parentInverse);
-        this.setDirty();
+        try {
+            const parentInverse = this.parent.inverseWorldMatrix;
+            if (!parentInverse) {
+                console.warn('Parent inverse matrix not available, setting local position directly');
+                return this.setPosition(x, y, z);
+            }
+            glMatrix.vec3.transformMat4(this._localPosition, worldPos, parentInverse);
+            this.setDirty();
+        } catch (error) {
+            console.warn('Error transforming position, falling back to direct position', error);
+            return this.setPosition(x, y, z);
+        }
         return this;
     }
 

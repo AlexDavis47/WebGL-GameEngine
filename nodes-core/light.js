@@ -38,8 +38,8 @@ class Light extends Node3D {
             range: 0
         };
     }
-    update(deltaTime) {
-        super.update(deltaTime);
+    async update(deltaTime) {
+        await super.update(deltaTime);
     }
 }
 

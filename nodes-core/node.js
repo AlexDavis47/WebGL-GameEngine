@@ -8,6 +8,7 @@ class Node {
         this._initialized = false;
         this._markedForDeletion = false;
         this._deferredOperations = [];
+        this._initPromise = null;
     }
 
     // Lifecycle properties
@@ -27,32 +28,30 @@ class Node {
     async init(gl) {
         if (!this._enabled || this._initialized || this._markedForDeletion) return;
 
-        try {
+        // Store init promise
+        this._initPromise = (async () => {
+            try {
+                this.onPreInit(gl);
 
-            // On pre-init hook
-            this.onPreInit(gl);
+                const childInitPromises = Array.from(this.children.values())
+                    .filter(child => !child.isDestroyed)
+                    .map(child => child.init(gl));
 
-            // Initialize all children first
-            const childInitPromises = Array.from(this.children.values())
-                .filter(child => !child.isDestroyed)
-                .map(child => child.init(gl));
+                await Promise.all(childInitPromises);
+                await this.ready(gl);
 
-            await Promise.all(childInitPromises);
+                this._initialized = true;
+                this.onPostInit(gl);
+                this.processDeferredOperations();
+            } catch (error) {
+                console.error(`Failed to initialize node ${this.name}:`, error);
+                throw error;
+            }
+        })();
 
-            // Now call ready() after children are initialized
-            this.ready(gl);
-
-            this._initialized = true;
-
-            // On post-init hook
-            this.onPostInit(gl);
-
-            this.processDeferredOperations();
-        } catch (error) {
-            console.error(`Failed to initialize node ${this.name}:`, error);
-            throw error;
-        }
+        return this._initPromise;
     }
+
 
     onPreInit(gl) {
         // Override in derived classes
@@ -66,22 +65,21 @@ class Node {
         // Override in derived classes
     }
 
-    update(deltaTime) {
-        if (!this.enabled || !this._initialized || this._markedForDeletion) return;
+    async update(deltaTime) {
+        // Don't update if initialization hasn't completed
+        if (!this._initPromise || !this.enabled || !this._initialized || this._markedForDeletion) return;
 
         this.processDeferredOperations();
 
-        // Pre-update hook
         this.onPreUpdate(deltaTime);
 
-        // Update children, skipping destroyed nodes
         [...this.children.values()]
             .filter(child => !child.isDestroyed)
             .forEach(child => child.update(deltaTime));
 
-        // Post-update hook
         this.onPostUpdate(deltaTime);
     }
+
 
     onPreUpdate(deltaTime) {
         // Override in derived classes
