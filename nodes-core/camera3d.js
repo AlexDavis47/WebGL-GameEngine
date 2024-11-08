@@ -206,8 +206,8 @@ class Camera3D extends Node3D {
     }
 
     // Lifecycle methods
-    onInit(gl) {
-        super.onInit(gl);
+    ready(gl) {
+        super.ready(gl);
         this.updateProjectionMatrix();
     }
 

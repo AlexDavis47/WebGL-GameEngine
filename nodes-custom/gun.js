@@ -52,8 +52,8 @@ class Gun extends Model3D {
         this.audio.play();
     }
 
-    onInit(gl) {
-        super.onInit(gl);
+    ready(gl) {
+        super.ready(gl);
         this.loadModel('./assets/models/gun/gun.obj');
         this.setShaderFromFile('./shaders/phong.glsl');
     }

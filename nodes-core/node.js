@@ -29,7 +29,7 @@ class Node {
 
         try {
             // Initialize self first
-            this.onInit(gl);
+            this.ready(gl);
 
             // Initialize all children
             const childInitPromises = Array.from(this.children.values())
@@ -46,7 +46,7 @@ class Node {
         }
     }
 
-    onInit(gl) {
+    ready(gl) {
         // Override in derived classes
     }
 

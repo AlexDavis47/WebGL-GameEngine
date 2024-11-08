@@ -26,12 +26,6 @@ class FPSCamera extends Camera3D {
         };
     }
 
-
-
-    onInit(gl) {
-        super.onInit(gl);
-    }
-
     update(deltaTime) {
         if (isPointerLockActive()) {
             this.updateMovement(deltaTime);

@@ -9,8 +9,8 @@ class Bullet extends Model3D {
         this._currentLifeTime = this._maxLifeTime;
     }
 
-    onInit(gl) {
-        super.onInit(gl);
+    ready(gl) {
+        super.ready(gl);
         this.loadModel('./assets/models/bullet/bullet.obj');
         this.setShaderFromFile('./shaders/phong.glsl');
         this.setScale(0.1, 0.1, 0.1);

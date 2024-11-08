@@ -157,9 +157,9 @@ class Model3D extends Node3D {
         return this;
     }
 
-    async onInit(gl) {
+    async ready(gl) {
         // Any model-specific initialization
-        await super.onInit(gl);
+        await super.ready(gl);
     }
 
     render(gl) {
