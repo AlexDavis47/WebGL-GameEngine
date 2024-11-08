@@ -58,10 +58,10 @@ class Gun extends Model3D {
         this.setShaderFromFile('./shaders/phong.glsl');
     }
 
-    async update(deltaTime) {
+    update(deltaTime) {
         this.updateGunPhysics(deltaTime);
         this.handleInput();
-        await super.update(deltaTime);
+        super.update(deltaTime);
     }
 
     updateGunPhysics(deltaTime) {

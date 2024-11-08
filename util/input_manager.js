@@ -1,6 +1,6 @@
-// State tracking
 const keyStates = new Map(); // Current frame state
 const previousKeyStates = new Map(); // Last frame state
+const keyEventBuffer = new Map(); // Buffer for incoming key events
 
 // Mouse tracking
 let mouseX = 0;
@@ -10,9 +10,10 @@ let mouseDeltaY = 0;
 let previousMouseX = 0;
 let previousMouseY = 0;
 
-// Mouse button states
+// Mouse button states with buffer
 const mouseStates = new Map();
 const previousMouseStates = new Map();
+const mouseEventBuffer = new Map();
 
 // Pointer lock state
 let isPointerLocked = false;
@@ -28,33 +29,31 @@ canvas.addEventListener('click', () => {
 document.addEventListener('pointerlockchange', () => {
     isPointerLocked = document.pointerLockElement === canvas;
 
-    // Reset mouse positions when pointer lock changes to prevent jumps
     if (isPointerLocked) {
         previousMouseX = mouseX;
         previousMouseY = mouseY;
     }
 });
 
-// Input event handlers
+// Input event handlers - now updating the event buffer instead of state directly
 document.addEventListener('keydown', (event) => {
-    keyStates.set(event.code, true);
+    keyEventBuffer.set(event.code, true);
 });
 
 document.addEventListener('keyup', (event) => {
-    keyStates.set(event.code, false);
+    keyEventBuffer.set(event.code, false);
 });
 
 document.addEventListener('mousedown', (event) => {
-    mouseStates.set(event.button, true);
+    mouseEventBuffer.set(event.button, true);
 });
 
 document.addEventListener('mouseup', (event) => {
-    mouseStates.set(event.button, false);
+    mouseEventBuffer.set(event.button, false);
 });
 
 document.addEventListener('mousemove', (event) => {
     if (isPointerLocked) {
-        // Use movementX/Y for pointer lock which gives us relative movement
         mouseX += event.movementX;
         mouseY += event.movementY;
     } else {
@@ -90,17 +89,27 @@ function isMouseButtonJustReleased(button) {
 
 // Update function to be called at start of each frame
 function updateInput() {
-    // Store previous key states
-    previousKeyStates.clear();
+    // Store previous states
     keyStates.forEach((value, key) => {
         previousKeyStates.set(key, value);
     });
 
-    // Store previous mouse states
-    previousMouseStates.clear();
     mouseStates.forEach((value, button) => {
         previousMouseStates.set(button, value);
     });
+
+    // Apply buffered events to current states
+    keyEventBuffer.forEach((value, key) => {
+        keyStates.set(key, value);
+    });
+
+    mouseEventBuffer.forEach((value, button) => {
+        mouseStates.set(button, value);
+    });
+
+    // Clear event buffers for next frame
+    keyEventBuffer.clear();
+    mouseEventBuffer.clear();
 
     // Update mouse position
     mouseDeltaX = mouseX - previousMouseX;

@@ -97,7 +97,7 @@ class Scene extends Node3D {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
 
-    async update(deltaTime) {
+    update(deltaTime) {
         if (!this._physicsEnabled) return;
 
         if (this._physicsWorld) {
@@ -106,7 +106,7 @@ class Scene extends Node3D {
             this._physicsWorld.stepSimulation(fixedTimeStep, maxSubSteps);
         }
 
-        await super.update(deltaTime);
+        super.update(deltaTime);
     }
 
     render(gl) {

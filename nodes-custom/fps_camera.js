@@ -26,13 +26,13 @@ class FPSCamera extends Camera3D {
         };
     }
 
-    async update(deltaTime) {
+    update(deltaTime) {
         if (isPointerLockActive()) {
             this.updateMovement(deltaTime);
             this.updateRotation();
         }
 
-        await super.update(deltaTime);
+        super.update(deltaTime);
     }
 
     updateMovement(deltaTime) {

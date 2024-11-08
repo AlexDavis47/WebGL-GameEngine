@@ -22,7 +22,7 @@ class TestScene extends Scene {
             .setPositionX(0)
             .setPositionY(5)
             .setPositionZ(5)
-            .setPerspective(90, 0.1, 500000)
+            .setPerspective(70, 0.1, 500000)
             .setMoveSpeed(5.0)
             .setLookSpeed(5);
         this.addChild(this._camera);
@@ -85,13 +85,8 @@ class TestScene extends Scene {
         testBox.addChild(boxVisual);
     }
 
-    async update(deltaTime) {
-        this.deltaAccumulator += deltaTime;
-        if (this.deltaAccumulator > 2) {
-            await this.spawnTestBox();
-            this.deltaAccumulator = 0;
-        }
-        await super.update(deltaTime);
+    update(deltaTime) {
+        super.update(deltaTime);
     }
 }
 

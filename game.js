@@ -146,6 +146,8 @@ class Game {
     gameLoop(currentTime) {
         if (!this._isRunning) return;
 
+        updateInput();
+
         // Calculate frame time and clamp it
         let frameTime = (currentTime - this._lastFrameTime) / 1000;
         frameTime = Math.min(frameTime, this._maxFrameTime);
@@ -154,6 +156,7 @@ class Game {
 
         // Update at fixed time step
         while (this._accumulator >= this._fixedTimeStep) {
+
             if (!this._isPaused && this._activeScene) {
                 this._activeScene.update(this._fixedTimeStep);
             }
@@ -165,7 +168,7 @@ class Game {
             this._activeScene.render(this._gl);
         }
 
-        updateInput();
+
 
         this._lastFrameTime = currentTime;
         requestAnimationFrame(this.gameLoop.bind(this));

@@ -65,7 +65,7 @@ class Node {
         // Override in derived classes
     }
 
-    async update(deltaTime) {
+    update(deltaTime) {
         // Don't update if initialization hasn't completed
         if (!this._initPromise || !this.enabled || !this._initialized || this._markedForDeletion) return;
 
