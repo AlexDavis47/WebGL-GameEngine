@@ -24,26 +24,42 @@ class Node {
     }
 
     // Lifecycle methods
-    init(gl) {
+    async init(gl) {
         if (!this._enabled || this._initialized || this._markedForDeletion) return;
 
         try {
-            // Initialize self first
-            this.ready(gl);
 
-            // Initialize all children
+            // On pre-init hook
+            this.onPreInit(gl);
+
+            // Initialize all children first
             const childInitPromises = Array.from(this.children.values())
                 .filter(child => !child.isDestroyed)
                 .map(child => child.init(gl));
 
-            Promise.all(childInitPromises);
+            await Promise.all(childInitPromises);
+
+            // Now call ready() after children are initialized
+            this.ready(gl);
 
             this._initialized = true;
+
+            // On post-init hook
+            this.onPostInit(gl);
+
             this.processDeferredOperations();
         } catch (error) {
             console.error(`Failed to initialize node ${this.name}:`, error);
             throw error;
         }
+    }
+
+    onPreInit(gl) {
+        // Override in derived classes
+    }
+
+    onPostInit(gl) {
+        // Override in derived classes
     }
 
     ready(gl) {
@@ -58,7 +74,7 @@ class Node {
         // Pre-update hook
         this.onPreUpdate(deltaTime);
 
-        // Update children (create new array to allow for modifications during iteration)
+        // Update children, skipping destroyed nodes
         [...this.children.values()]
             .filter(child => !child.isDestroyed)
             .forEach(child => child.update(deltaTime));
