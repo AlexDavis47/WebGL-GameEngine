@@ -3,10 +3,9 @@ import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
 
 class Model3D extends Node3D {
-    constructor(gl) {
+    constructor() {
         super();
         this.name = "Model3D";
-        this._gl = gl;
         this._vao = null;
         this._indexBuffer = null;
         this._indexCount = 0;
@@ -86,8 +85,6 @@ class Model3D extends Node3D {
     }
 
     setGeometry(vertices, indices, normals, uvs) {
-        const gl = this._gl;
-
         // Create and bind VAO
         this._vao = gl.createVertexArray();
         gl.bindVertexArray(this._vao);
@@ -132,7 +129,7 @@ class Model3D extends Node3D {
     }
 
     setTexture(image, materialName = 'default') {
-        const gl = this._gl;
+
 
         // Create and setup texture
         const texture = gl.createTexture();
@@ -157,12 +154,12 @@ class Model3D extends Node3D {
         return this;
     }
 
-    async ready(gl) {
+    async ready() {
         // Any model-specific initialization
-        await super.ready(gl);
+        await super.ready();
     }
 
-    render(gl) {
+    render() {
         if (!this._vao || !this.enabled) return;
 
         const program = this._shaderProgram || gl.defaultProgram;
@@ -180,11 +177,11 @@ class Model3D extends Node3D {
         gl.bindVertexArray(null);
 
         // Render children
-        super.render(gl);
+        super.render();
     }
 
     onDestroy() {
-        const gl = this._gl;
+
 
         // Cleanup GL resources
         if (this._vao) {
@@ -216,7 +213,7 @@ class Model3D extends Node3D {
     }
 
     setCustomShader(shaderOptions) {
-        this._shaderProgram = this._gl.shaderManager.createCustomShader(
+        this._shaderProgram = gl.shaderManager.createCustomShader(
             `${this.name}_shader`,
             shaderOptions
         );
@@ -225,7 +222,7 @@ class Model3D extends Node3D {
 
     async setShaderFromFile(shaderPath) {
         const shaderName = `${this.name}_${Date.now()}`;
-        this._shaderProgram = await this._gl.shaderManager.loadShader(shaderName, shaderPath);
+        this._shaderProgram = await gl.shaderManager.loadShader(shaderName, shaderPath);
         return this;
     }
 }

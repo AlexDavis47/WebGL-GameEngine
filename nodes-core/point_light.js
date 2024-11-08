@@ -2,8 +2,8 @@
 import Light, { LightType } from './light.js';
 
 class PointLight extends Light {
-    constructor(gl) {
-        super(gl);
+    constructor() {
+        super();
         this.type = LightType.POINT;
         this.range = 10.0; // Default range
     }

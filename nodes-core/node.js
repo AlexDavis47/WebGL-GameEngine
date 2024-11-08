@@ -25,23 +25,23 @@ class Node {
     }
 
     // Lifecycle methods
-    async init(gl) {
+    async init() {
         if (!this._enabled || this._initialized || this._markedForDeletion) return;
 
         // Store init promise
         this._initPromise = (async () => {
             try {
-                this.onPreInit(gl);
+                this.onPreInit();
 
                 const childInitPromises = Array.from(this.children.values())
                     .filter(child => !child.isDestroyed)
-                    .map(child => child.init(gl));
+                    .map(child => child.init());
 
                 await Promise.all(childInitPromises);
-                await this.ready(gl);
+                await this.ready();
 
                 this._initialized = true;
-                this.onPostInit(gl);
+                this.onPostInit();
                 this.processDeferredOperations();
             } catch (error) {
                 console.error(`Failed to initialize node ${this.name}:`, error);
@@ -53,15 +53,15 @@ class Node {
     }
 
 
-    onPreInit(gl) {
+    onPreInit() {
         // Override in derived classes
     }
 
-    onPostInit(gl) {
+    onPostInit() {
         // Override in derived classes
     }
 
-    ready(gl) {
+    ready() {
         // Override in derived classes
     }
 
@@ -89,28 +89,28 @@ class Node {
         // Override in derived classes
     }
 
-    render(gl) {
+    render() {
         if (!this.enabled || this._markedForDeletion) return;
 
         // Pre-render hook
-        this.onPreRender(gl);
+        this.onPreRender();
 
         // Render children
         for (const child of this.children.values()) {
             if (!child.isDestroyed) {
-                child.render(gl);
+                child.render();
             }
         }
 
         // Post-render hook
-        this.onPostRender(gl);
+        this.onPostRender();
     }
 
-    onPreRender(gl) {
+    onPreRender() {
         // Override in derived classes
     }
 
-    onPostRender(gl) {
+    onPostRender() {
         // Override in derived classes
     }
 
@@ -174,7 +174,7 @@ class Node {
 
         // Initialize the child if parent is already initialized
         if (this.initialized && !node.initialized) {
-            node.init(this.getRootContext());
+            node.init();
         }
     }
 

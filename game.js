@@ -7,7 +7,6 @@ class Game {
     constructor(options = {}) {
         // Canvas setup
         this._canvas = document.getElementById('gameCanvas');
-        this._gl = null;
 
         // Scene management
         this._activeScene = null;
@@ -33,9 +32,8 @@ class Game {
 
     async init() {
         // Initialize WebGL context
-        this._gl = this._canvas.getContext('webgl2');
-        global.gl = this._gl;
-        if (!this._gl) {
+        gl = this._canvas.getContext('webgl2');
+        if (!gl) {
             console.error('WebGL2 not supported');
             return;
         }
@@ -64,19 +62,19 @@ class Game {
     }
 
     initializeShaderManager() {
-        this._shaderManager = new ShaderManager(this._gl);
-        this._gl.shaderManager = this._shaderManager;
+        this._shaderManager = new ShaderManager(gl);
+        gl.shaderManager = this._shaderManager;
         const defaultProgram = this._shaderManager.createProgram(
             'default',
             defaultVertexShader,
             defaultFragmentShader
         );
         this._shaderManager.setDefaultProgram('default');
-        this._gl.defaultProgram = defaultProgram;
+        gl.defaultProgram = defaultProgram;
     }
 
     setupGLState() {
-        const gl = this._gl;
+
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -133,7 +131,7 @@ class Game {
         console.log('Viewport aspect ratio:', viewportWidth / viewportHeight);
 
         // Set GL viewport
-        this._gl.viewport(viewportX, viewportY, viewportWidth, viewportHeight);
+        gl.viewport(viewportX, viewportY, viewportWidth, viewportHeight);
 
         // Update camera with the correct aspect ratio
         if (this._activeScene?.activeCamera) {
@@ -148,24 +146,21 @@ class Game {
 
         updateInput();
 
+
         // Calculate frame time and clamp it
-        let frameTime = (currentTime - this._lastFrameTime) / 1000;
-        frameTime = Math.min(frameTime, this._maxFrameTime);
+        let deltaTime = (currentTime - this._lastFrameTime) / 1000;
 
-        this._accumulator += frameTime;
+        deltaTime = Math.min(deltaTime, this._maxFrameTime);
 
-        // Update at fixed time step
-        while (this._accumulator >= this._fixedTimeStep) {
-
-            if (!this._isPaused && this._activeScene) {
-                this._activeScene.update(this._fixedTimeStep);
-            }
-            this._accumulator -= this._fixedTimeStep;
+        // Update
+        if (!this._isPaused && this._activeScene) {
+            this._activeScene.update(deltaTime);
         }
+        this._accumulator -= this._fixedTimeStep;
 
         // Render
         if (this._activeScene) {
-            this._activeScene.render(this._gl);
+            this._activeScene.render(gl);
         }
 
 
@@ -180,7 +175,7 @@ class Game {
         }
         this._activeScene = scene;
         if (this._activeScene) {
-            await scene.init(this._gl);  // Wait for scene initialization
+            await scene.init(gl);  // Wait for scene initialization
         }
     }
 
@@ -216,7 +211,7 @@ class Game {
 
     // Getters
     get gl() {
-        return this._gl;
+        return gl;
     }
 
     get canvas() {

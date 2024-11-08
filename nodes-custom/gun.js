@@ -2,8 +2,8 @@ import Model3D from "../nodes-core/model3d.js";
 import Bullet from "../nodes-custom/bullet.js";
 
 class Gun extends Model3D {
-    constructor(gl) {
-        super(gl);
+    constructor() {
+        super();
         this.name = "Gun";
 
         // Current actual rotation (separate from the transform rotation)
@@ -52,8 +52,8 @@ class Gun extends Model3D {
         this.audio.play();
     }
 
-    ready(gl) {
-        super.ready(gl);
+    ready() {
+        super.ready();
         this.loadModel('./assets/models/gun/gun.obj');
         this.setShaderFromFile('./shaders/phong.glsl');
     }
@@ -139,7 +139,7 @@ class Gun extends Model3D {
         this._rotationVelocity.x += this._config.RECOIL.IMMEDIATE;
         this._targetRotation.x += this._config.RECOIL.SUSTAINED;
 
-        const bullet = new Bullet(this._gl);
+        const bullet = new Bullet();
 
         // Get gun's world position and forward direction
         const worldPos = this.getPositionWorld();

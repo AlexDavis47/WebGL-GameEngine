@@ -1,7 +1,1 @@
-class Global {
-    constructor() {
-        this.gl = null;
-    }
-}
-
-const global = new Global();
+let gl = document.getElementById("gameCanvas").getContext('webgl2');

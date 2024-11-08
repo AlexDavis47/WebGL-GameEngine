@@ -28,8 +28,8 @@ class PhysicsBody3D extends Node3D {
         this._tempBtQuaternion = new Ammo.btQuaternion();
     }
 
-    async init(gl) {
-        await super.init(gl);
+    async init() {
+        await super.init();
         if (this._collisionShape) {
             await this._initPhysics();
         }

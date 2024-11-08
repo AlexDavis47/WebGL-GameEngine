@@ -11,7 +11,6 @@ class Scene extends Node3D {
         this._ambientLight = [0.1, 0.1, 0.1];
         this._clearColor = [0.0, 0.0, 0.0, 1.0];
         this._activeCamera = null;
-        this._gl = null;
 
         // Scene state
         this._renderingEnabled = true;
@@ -43,12 +42,11 @@ class Scene extends Node3D {
     }
 
     // Scene initialization
-    init(gl) {
+    init() {
         if (!gl) {
             throw new Error("Scene requires a valid WebGL context for initialization");
         }
 
-        this._gl = gl;
         this.setupGLState();
         this.setupPhysics();
 
@@ -61,7 +59,7 @@ class Scene extends Node3D {
         }
 
         // Initialize all nodes in the scene
-        super.init(gl);
+        super.init();
     }
 
     setupPhysics() {
@@ -84,7 +82,7 @@ class Scene extends Node3D {
 
 
     setupGLState() {
-        const gl = this._gl;
+
 
         // Set initial GL state
         gl.clearColor(...this._clearColor);
@@ -109,7 +107,7 @@ class Scene extends Node3D {
         super.update(deltaTime);
     }
 
-    render(gl) {
+    render() {
         if (!this._renderingEnabled) return;
 
         // Clear buffers
@@ -125,7 +123,7 @@ class Scene extends Node3D {
         this._activeCamera.updateViewMatrix();
 
         // Render all nodes in the scene
-        super.render(gl);
+        super.render();
     }
 
     // Scene management
@@ -146,8 +144,8 @@ class Scene extends Node3D {
 
     setClearColor(r, g, b, a = 1.0) {
         this._clearColor = [r, g, b, a];
-        if (this._gl) {
-            this._gl.clearColor(r, g, b, a);
+        if (gl) {
+            gl.clearColor(r, g, b, a);
         }
         return this;
     }
@@ -185,7 +183,6 @@ class Scene extends Node3D {
     // Resource cleanup
     onDestroy() {
         // Clean up GL resources if needed
-        this._gl = null;
         this._activeCamera = null;
 
         Ammo.destroy(this._physicsWorld);

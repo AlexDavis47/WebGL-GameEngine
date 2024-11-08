@@ -1,7 +1,7 @@
 import Model3D from "../nodes-core/model3d.js";
 
 class Bullet extends Model3D {
-    constructor(gl) {
+    constructor() {
         super(gl);
         this.name = "Bullet";
         this._speed = 10.0;

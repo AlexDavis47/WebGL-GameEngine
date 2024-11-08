@@ -79,7 +79,7 @@ class TestScene extends Scene {
             .setPosition(0, 10, 0);
         this.addChild(testBox);
 
-        const boxVisual = new Model3D(global.gl);
+        const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
         await boxVisual.setShaderFromFile('./shaders/phong.glsl');
         testBox.addChild(boxVisual);
@@ -87,6 +87,9 @@ class TestScene extends Scene {
 
     update(deltaTime) {
         super.update(deltaTime);
+        if (isMouseButtonJustPressed(0)) {
+            this.spawnTestBox();
+        }
     }
 }
 

@@ -1,8 +1,7 @@
 import Light from "./nodes-core/light.js";
 
 class ShaderManager {
-    constructor(gl) {
-        this.gl = gl;
+    constructor() {
         this.shaderPrograms = new Map();
         this.defaultProgram = null;
 
@@ -131,13 +130,13 @@ class ShaderManager {
     }
 
     createShader(type, source) {
-        const shader = this.gl.createShader(type);
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
 
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            const error = this.gl.getShaderInfoLog(shader);
-            this.gl.deleteShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            const error = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader);
             throw new Error(`Shader compilation error: ${error}\nShader source:\n${source}`);
         }
 
@@ -145,34 +144,34 @@ class ShaderManager {
     }
 
     createProgram(name, vertexSource, fragmentSource) {
-        const vertexShader = this.createShader(this.gl.VERTEX_SHADER, vertexSource);
-        const fragmentShader = this.createShader(this.gl.FRAGMENT_SHADER, fragmentSource);
+        const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexSource);
+        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentSource);
 
-        const program = this.gl.createProgram();
-        this.gl.attachShader(program, vertexShader);
-        this.gl.attachShader(program, fragmentShader);
-        this.gl.linkProgram(program);
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
 
-        if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-            const error = this.gl.getProgramInfoLog(program);
-            this.gl.deleteProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            const error = gl.getProgramInfoLog(program);
+            gl.deleteProgram(program);
             throw new Error(`Program linking error: ${error}`);
         }
 
         // Cache uniform locations
         const uniforms = new Map();
-        const numUniforms = this.gl.getProgramParameter(program, this.gl.ACTIVE_UNIFORMS);
+        const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
         for (let i = 0; i < numUniforms; i++) {
-            const uniformInfo = this.gl.getActiveUniform(program, i);
-            uniforms.set(uniformInfo.name, this.gl.getUniformLocation(program, uniformInfo.name));
+            const uniformInfo = gl.getActiveUniform(program, i);
+            uniforms.set(uniformInfo.name, gl.getUniformLocation(program, uniformInfo.name));
         }
 
         // Cache attribute locations
         const attributes = new Map();
-        const numAttributes = this.gl.getProgramParameter(program, this.gl.ACTIVE_ATTRIBUTES);
+        const numAttributes = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
         for (let i = 0; i < numAttributes; i++) {
-            const attributeInfo = this.gl.getActiveAttrib(program, i);
-            attributes.set(attributeInfo.name, this.gl.getAttribLocation(program, attributeInfo.name));
+            const attributeInfo = gl.getActiveAttrib(program, i);
+            attributes.set(attributeInfo.name, gl.getAttribLocation(program, attributeInfo.name));
         }
 
         const programInfo = {
@@ -242,7 +241,7 @@ class ShaderManager {
 
     setTransformUniforms(program, camera, model) {
         const { uniforms } = program;
-        const gl = this.gl;
+
 
         // Use proper matrix getters from new Node3D system
         gl.uniformMatrix4fv(uniforms.get('u_worldMatrix'), false, model.worldMatrix);
@@ -262,7 +261,7 @@ class ShaderManager {
 
     setLightUniforms(program, scene) {
         const { uniforms } = program;
-        const gl = this.gl;
+
 
         // Get all lights in the scene
         const lights = scene.findByType(Light);
@@ -302,7 +301,7 @@ class ShaderManager {
 
     setMaterialUniforms(program, material) {
         const { uniforms } = program;
-        const gl = this.gl;
+
 
         gl.uniform3fv(uniforms.get('u_baseColor'), material.baseColor);
         gl.uniform1f(uniforms.get('u_metallic'), material.metallic);
@@ -318,7 +317,7 @@ class ShaderManager {
 
     setCustomUniforms(program) {
         const { uniforms } = program;
-        const gl = this.gl;
+
 
         if (uniforms.get('u_time')) {
             gl.uniform1f(uniforms.get('u_time'), performance.now() / 1000.0);

@@ -8,9 +8,8 @@ export const LightType = {
 };
 
 class Light extends Node3D {
-    constructor(gl) {
+    constructor() {
         super();
-        this.gl = gl;
         this.color = [1.0, 1.0, 1.0]; // Default white light
         this.intensity = 1.0;
         this.type = null; // Must be set by child classes
