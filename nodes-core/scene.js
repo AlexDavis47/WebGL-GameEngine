@@ -1,6 +1,5 @@
 import Node from './node.js';
 import Camera3D from './camera3d.js';
-import * as Cannon from "../util/cannon-es.js";
 
 class Scene extends Node {
     constructor() {
@@ -12,12 +11,6 @@ class Scene extends Node {
         this._clearColor = [0.0, 0.0, 0.0, 1.0];
         this._activeCamera = null;
         this._gl = null;
-
-        this.world = new Cannon.World(
-            {
-                gravity: new Cannon.Vec3(0, -9.81, 0),
-            }
-        );
 
         // Scene state
         this._renderingEnabled = true;
@@ -75,10 +68,6 @@ class Scene extends Node {
 
     update(deltaTime) {
         if (!this._physicsEnabled) return;
-
-        // Update physics
-        this.world.step(1 / 60, deltaTime / 1000, 3);
-
 
         super.update(deltaTime);
 
