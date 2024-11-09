@@ -4,29 +4,25 @@ import Model3D from "./nodes-core/model3d.js";
 import PointLight from "./nodes-core/point_light.js";
 import Gun from "./nodes-custom/gun.js";
 import PhysicsBody3D from "./nodes-core/physics_body_3d.js";
+import Player from "./nodes-custom/player.js";
 
 class TestScene extends Scene {
     constructor() {
         super();
         this.name = "TestScene";
         this._camera = null;
-        this.deltaAccumulator = 0;
     }
 
     async init(gl) {
         console.log('Initializing test scene...');
 
         // Create and set up camera
-        this._camera = new FPSCamera();
-        this._camera
-            .setPositionX(0)
-            .setPositionY(5)
-            .setPositionZ(5)
-            .setPerspective(70, 0.1, 500000)
+        const player = new Player();
+        player.setPosition(0, 5, 5)
             .setMoveSpeed(5.0)
-            .setLookSpeed(5);
-        this.addChild(this._camera);
-        this.setActiveCamera(this._camera);
+            .setRotationSpeed(0.1);
+        this.addChild(player);
+        this._camera = player._camera;
 
 
         const ocean = new Model3D(gl);
@@ -43,16 +39,6 @@ class TestScene extends Scene {
         sun.setIntensity(1.0);
 
         this.addChild(sun);
-
-
-        // Add gun model
-        const gun = new Gun(gl);
-        this._camera.addChild(gun);
-        gun
-            .setPositionX(0.4)
-            .setPositionY(-0.3)
-            .setPositionZ(-0.4)
-            .setScaleUniform(0.05);
 
         // Island physics body
         const island = new PhysicsBody3D();
