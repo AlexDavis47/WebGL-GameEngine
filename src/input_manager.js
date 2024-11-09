@@ -31,7 +31,7 @@ class InputManager {
 
 
 
-    initialize(canvas) {
+    init(canvas) {
         // Initialize pointer lock
         canvas.addEventListener('click', () => {
             if (!this.isPointerLocked) {

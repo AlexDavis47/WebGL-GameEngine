@@ -16,28 +16,28 @@ class TestScene extends Scene {
         this._camera = null;
     }
 
-    async init(gl) {
+    async init() {
         console.log('Initializing test scene...');
         physicsManager.setGravity(0, -9.81, 0);
 
 
         // Player setup
         const player = new Player();
-        player.setBoxShape(0.5, 1.7, 0.5);
+        player.setCapsuleShape(0.2, 0.3);
         this.addChild(player);
         this.setActiveCamera(player._camera);
         player.setPosition(0, 5, 0);
 
 
-        const ocean = new Model3D(gl);
+        const ocean = new Model3D();
         await ocean.loadModel('./assets/models/ocean/ocean.obj');
-        await ocean.setShaderFromFile('/assets/shaders/water.glsl');
+        await ocean.setShaderFromFile('./assets/shaders/water.glsl');
         ocean.setPosition(0, -1, 0);
         ocean.setScale(10, 10, 10);
         this.addChild(ocean);
 
 
-        const sun = new PointLight(gl);
+        const sun = new PointLight();
         sun.setPosition(0, 1000, 1000)
         sun.setRange(10000);
         sun.setIntensity(1.0);
@@ -53,14 +53,14 @@ class TestScene extends Scene {
 
 
         // Island model
-        const islandVisual = new Model3D(gl);
+        const islandVisual = new Model3D();
         await islandVisual.loadModel('./assets/models/island/island.obj');
         await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
         island.addChild(islandVisual);
 
 
         // Initialize the scene hierarchy
-        await super.init(gl);
+        await super.init();
     }
 
     async spawnTestBox() {

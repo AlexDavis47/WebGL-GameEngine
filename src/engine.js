@@ -1,6 +1,7 @@
 import { mat4, vec3 } from 'gl-matrix';
 import shaderManager from './shader_manager';
 import inputManager from './input_manager';
+import physicsManager from "./physics_manager.js";
 
 // This is a singleton class, contains helpful globals and init code.
 class Engine {
@@ -30,9 +31,9 @@ class Engine {
         window.gl = this.gl;
 
         // Initialize shader manager after GL context is created
-        shaderManager.initialize();
-
-        inputManager.initialize(canvas);
+        shaderManager.init();
+        inputManager.init(canvas);
+        await physicsManager.init();
 
 
         return this;

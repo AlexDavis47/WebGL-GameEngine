@@ -41,6 +41,16 @@ class KinematicBody3D extends PhysicsBody3D {
         }
     }
 
+    setCapsuleShape(radius, height) {
+        this._colliderDesc = RAPIER.ColliderDesc.capsule(radius, height);
+
+        if (this.initialized) {
+            return this._initPhysics();
+        }
+        return this;
+    }
+
+
     _configureCharacterController() {
         if (!this._characterController) return;
 
@@ -61,11 +71,6 @@ class KinematicBody3D extends PhysicsBody3D {
     moveAndSlide(deltaTime) {
         if (!this._characterController || !this._collider) return;
 
-        this._hasUpwardsVelocity = this._velocity[1] > 0;
-        if (this._hasUpwardsVelocity) {
-            this._isOnFloor = false;
-        }
-
         // Scale velocity by deltaTime to get movement
         const movement = {
             x: this._velocity[0] * deltaTime,
@@ -74,7 +79,7 @@ class KinematicBody3D extends PhysicsBody3D {
         };
 
         // Compute movement with physics
-        this._characterController.computeColliderMovement(
+        this._characterController.computeColliderMovement( // This is move and slide?
             this._collider,
             movement
         );
@@ -92,6 +97,7 @@ class KinematicBody3D extends PhysicsBody3D {
             z: currentPos.z + correctedMovement.z
         });
 
+        // Kinematic body does not simulate physics,
         // Always update rotation to match our Node3D rotation
         const rotation = this._worldRotationQuat;
         this._rigidBody.setRotation({
@@ -115,6 +121,7 @@ class KinematicBody3D extends PhysicsBody3D {
             .enabledRotations(false, false, false); // Disable rotation on all axes
     }
 
+
     _updateCollisionStates() {
         this._isOnFloor = false;
         this._isOnWall = false;
@@ -125,10 +132,7 @@ class KinematicBody3D extends PhysicsBody3D {
         const numCollisions = this._characterController.numComputedCollisions();
         for (let i = 0; i < numCollisions; i++) {
             const collision = this._characterController.computedCollision(i);
-            if (!collision.normal) continue;
-
-            const normal = collision.normal;
-            const normalY = normal.y;
+            const normalY = collision.normal1.y;
 
             if (normalY > 0.7) { // cos(45°) ≈ 0.7
                 this._isOnFloor = true;
@@ -138,7 +142,6 @@ class KinematicBody3D extends PhysicsBody3D {
                 this._isOnWall = true;
             }
         }
-        this._isOnFloor = true;
     }
 
     // Velocity methods

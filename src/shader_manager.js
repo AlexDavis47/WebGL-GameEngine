@@ -23,7 +23,7 @@ class ShaderManager {
     }
 
 
-    initialize() {
+    init() {
         if (this.initialized) return;
 
         this.initializeSpatialShader();

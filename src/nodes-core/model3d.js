@@ -2,6 +2,7 @@ import Node3D from './node3d.js';
 import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
 import shaderManager from '../shader_manager.js';
+import engine from "../engine.js";
 
 class Model3D extends Node3D {
     constructor() {
@@ -161,8 +162,14 @@ class Model3D extends Node3D {
     render() {
         if (!this._vao || !this.enabled) return;
 
-        const program = this._shaderProgram || gl.defaultProgram;
+        // Get the shader program (default if none set)
+        const program = this._shaderProgram || shaderManager.getDefaultProgram();
+
+        console.log()
+
         gl.useProgram(program.program);
+
+
 
         // Get scene from node hierarchy
         const scene = this.getRootNode();
@@ -178,6 +185,7 @@ class Model3D extends Node3D {
         // Render children
         super.render();
     }
+
 
     onDestroy() {
 
@@ -211,13 +219,6 @@ class Model3D extends Node3D {
         return this;
     }
 
-    setCustomShader(shaderOptions) {
-        this._shaderProgram = gl.shaderManager.createCustomShader(
-            `${this.name}_shader`,
-            shaderOptions
-        );
-        return this;
-    }
 
     async setShaderFromFile(shaderPath) {
         const shaderName = `${this.name}_${Date.now()}`;

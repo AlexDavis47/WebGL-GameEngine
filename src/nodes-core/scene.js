@@ -105,9 +105,7 @@ class Scene extends Node3D {
 
     setClearColor(r, g, b, a = 1.0) {
         this._clearColor = [r, g, b, a];
-        if (gl) {
-            gl.clearColor(r, g, b, a);
-        }
+        gl.clearColor(r, g, b, a);
         return this;
     }
 

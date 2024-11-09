@@ -16,7 +16,6 @@ class Game {
 
         // Scene management
         this._activeScene = null;
-        this._shaderManager = null;
 
         // Game state
         this._isRunning = false;
@@ -39,8 +38,6 @@ class Game {
     async init() {
         // Initialize engine with our canvas
         await engine.init(this._canvas);
-        await physicsManager.init();
-        await physicsManager.init();
 
         this.setupGLState();
         this.setupEvents();
@@ -50,17 +47,6 @@ class Game {
         this._isRunning = true;
         this._lastFrameTime = performance.now();
         requestAnimationFrame(this.gameLoop.bind(this));
-    }
-
-    initializeShaderManager() {
-        this._shaderManager = new ShaderManager();
-        engine.shaderManager = this._shaderManager;
-        const defaultProgram = this._shaderManager.createProgram(
-            'default',
-            defaultVertexShader,
-            defaultFragmentShader
-        );
-        this._shaderManager.setDefaultProgram('default');
     }
 
     setupGLState() {
