@@ -2,7 +2,6 @@ import Node3D from './node3d.js';
 import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
 import shaderManager from '../shader_manager.js';
-import engine from "../engine.js";
 
 class Model3D extends Node3D {
     constructor() {
@@ -165,11 +164,7 @@ class Model3D extends Node3D {
         // Get the shader program (default if none set)
         const program = this._shaderProgram || shaderManager.getDefaultProgram();
 
-        console.log()
-
         gl.useProgram(program.program);
-
-
 
         // Get scene from node hierarchy
         const scene = this.getRootNode();
