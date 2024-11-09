@@ -12,7 +12,7 @@ class Bullet extends Model3D {
     ready(gl) {
         super.ready(gl);
         this.loadModel('./assets/models/bullet/bullet.obj');
-        this.setShaderFromFile('./shaders/phong.glsl');
+        this.setShaderFromFile('./assets/shaders/phong.glsl');
         this.setScale(0.1, 0.1, 0.1);
     }
 

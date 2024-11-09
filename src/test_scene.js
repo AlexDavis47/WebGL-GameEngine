@@ -18,16 +18,15 @@ class TestScene extends Scene {
 
     async init(gl) {
         console.log('Initializing test scene...');
-
-        // Create and set up camera
-        const camera = new FPSCamera(gl);
-        camera.setPosition(0, 2, 5);
-        this.setActiveCamera(camera);
-        this.addChild(camera);
-
         physicsManager.setGravity(0, -9.81, 0);
 
 
+        // Player setup
+        const player = new Player();
+        player.setBoxShape(0.5, 1.7, 0.5);
+        this.addChild(player);
+        this.setActiveCamera(player._camera);
+        player.setPosition(0, 5, 0);
 
 
         const ocean = new Model3D(gl);
@@ -61,7 +60,7 @@ class TestScene extends Scene {
 
 
         // Initialize the scene hierarchy
-        super.init(gl);
+        await super.init(gl);
     }
 
     async spawnTestBox() {
