@@ -1,16 +1,21 @@
+
 import TestScene from './test_scene.js';
 import ShaderManager from './shader_manager.js';
 import { defaultVertexShader, defaultFragmentShader } from './default_shaders.js';
-
+import engine from "./engine.js";
+import input_manager from "./input_manager.js";
+import physicsManager from "./physics_manager.js";
 
 class Game {
     constructor(options = {}) {
         // Canvas setup
         this._canvas = document.getElementById('gameCanvas');
 
+        // Store reference in engine
+        engine.game = this;
+
         // Scene management
         this._activeScene = null;
-        this._shaderManager = null;
 
         // Game state
         this._isRunning = false;
@@ -20,7 +25,7 @@ class Game {
         this._lastFrameTime = 0;
         this._targetFPS = options.targetFPS || 60;
         this._fixedTimeStep = 1 / this._targetFPS;
-        this._maxFrameTime = this._fixedTimeStep * 5; // Prevent spiral of death
+        this._maxFrameTime = this._fixedTimeStep * 5;
         this._accumulator = 0;
 
         // Resolution
@@ -31,46 +36,17 @@ class Game {
     }
 
     async init() {
-        // Initialize WebGL context
-        gl = this._canvas.getContext('webgl2');
-        if (!gl) {
-            console.error('WebGL2 not supported');
-            return;
-        }
+        // Initialize engine with our canvas
+        await engine.init(this._canvas);
 
-        await Ammo();
-
-        // Initialize shader manager
-        this.initializeShaderManager();
-
-        // Setup GL state
         this.setupGLState();
-
-        // Setup window events
         this.setupEvents();
-
-        // Do initial resize
         this.resizeCanvas();
+        await this.createInitialScene();
 
-        // Create and setup initial scene
-        await this.createInitialScene();  // Make this async
-
-        // Start game loop
         this._isRunning = true;
         this._lastFrameTime = performance.now();
         requestAnimationFrame(this.gameLoop.bind(this));
-    }
-
-    initializeShaderManager() {
-        this._shaderManager = new ShaderManager(gl);
-        gl.shaderManager = this._shaderManager;
-        const defaultProgram = this._shaderManager.createProgram(
-            'default',
-            defaultVertexShader,
-            defaultFragmentShader
-        );
-        this._shaderManager.setDefaultProgram('default');
-        gl.defaultProgram = defaultProgram;
     }
 
     setupGLState() {
@@ -141,11 +117,10 @@ class Game {
         }
     }
 
-    gameLoop(currentTime) {
+    async gameLoop(currentTime) {
         if (!this._isRunning) return;
 
-        updateInput();
-
+        await input_manager.update();
 
         // Calculate frame time and clamp it
         let deltaTime = (currentTime - this._lastFrameTime) / 1000;
@@ -153,8 +128,11 @@ class Game {
         deltaTime = Math.min(deltaTime, this._maxFrameTime);
 
         // Update
-        if (!this._isPaused && this._activeScene) {
-            this._activeScene.update(deltaTime);
+        if (!this._isPaused) {
+            physicsManager.step();
+            if (this._activeScene) {
+                this._activeScene.update(deltaTime);
+            }
         }
         this._accumulator -= this._fixedTimeStep;
 

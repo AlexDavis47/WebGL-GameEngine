@@ -1,6 +1,7 @@
 import Node from './node.js';
 import Camera3D from './camera3d.js';
 import Node3D from "./node3d.js";
+import physicsManager from "../physics_manager.js";
 
 class Scene extends Node3D {
     constructor() {
@@ -14,19 +15,9 @@ class Scene extends Node3D {
 
         // Scene state
         this._renderingEnabled = true;
-        this._physicsEnabled = true;
         this._debugMode = false;
         this._isRoot = true;
-
-        // Physics
-        this._physicsWorld = null;
-        this._gravity = new Ammo.btVector3(0, -9.81, 0);
-        this._physicsConfiguration = new Ammo.btDefaultCollisionConfiguration();
-        this._physicsDispatcher = new Ammo.btCollisionDispatcher(this._physicsConfiguration);
-        this._physicsBroadphase = new Ammo.btDbvtBroadphase();
-        this._physicsSolver = new Ammo.btSequentialImpulseConstraintSolver();
     }
-
 
     // Property accessors
     get ambientLight() {
@@ -42,13 +33,12 @@ class Scene extends Node3D {
     }
 
     // Scene initialization
-    init() {
+    async init() {
         if (!gl) {
             throw new Error("Scene requires a valid WebGL context for initialization");
         }
 
         this.setupGLState();
-        this.setupPhysics();
 
         // Find first camera if none is active
         if (!this._activeCamera) {
@@ -59,31 +49,10 @@ class Scene extends Node3D {
         }
 
         // Initialize all nodes in the scene
-        super.init();
+        await super.init();
     }
-
-    setupPhysics() {
-        if (typeof Ammo === 'undefined') {
-            console.error('Ammo not initialized');
-            return;
-        }
-
-        console.log("Setting up physics...");
-        this._physicsWorld = new Ammo.btDiscreteDynamicsWorld(
-            this._physicsDispatcher,
-            this._physicsBroadphase,
-            this._physicsSolver,
-            this._physicsConfiguration
-        );
-        console.log("Physics world created:", this._physicsWorld);
-        this._physicsWorld.setGravity(this._gravity);
-        console.log("Gravity set");
-    }
-
 
     setupGLState() {
-
-
         // Set initial GL state
         gl.clearColor(...this._clearColor);
         gl.enable(gl.DEPTH_TEST);
@@ -96,14 +65,6 @@ class Scene extends Node3D {
     }
 
     update(deltaTime) {
-        if (!this._physicsEnabled) return;
-
-        if (this._physicsWorld) {
-            const fixedTimeStep = 1.0 / 60.0;
-            const maxSubSteps = 3;
-            this._physicsWorld.stepSimulation(fixedTimeStep, maxSubSteps);
-        }
-
         super.update(deltaTime);
     }
 
@@ -144,9 +105,7 @@ class Scene extends Node3D {
 
     setClearColor(r, g, b, a = 1.0) {
         this._clearColor = [r, g, b, a];
-        if (gl) {
-            gl.clearColor(r, g, b, a);
-        }
+        gl.clearColor(r, g, b, a);
         return this;
     }
 
@@ -158,11 +117,6 @@ class Scene extends Node3D {
     // Scene state management
     enableRendering(enabled = true) {
         this._renderingEnabled = enabled;
-        return this;
-    }
-
-    enablePhysics(enabled = true) {
-        this._physicsEnabled = enabled;
         return this;
     }
 
@@ -184,15 +138,6 @@ class Scene extends Node3D {
     onDestroy() {
         // Clean up GL resources if needed
         this._activeCamera = null;
-
-        Ammo.destroy(this._physicsWorld);
-        Ammo.destroy(this._gravity);
-        Ammo.destroy(this._physicsConfiguration);
-        Ammo.destroy(this._physicsDispatcher);
-        Ammo.destroy(this._physicsBroadphase);
-        Ammo.destroy(this._physicsSolver);
-
-
         super.onDestroy();
     }
 }

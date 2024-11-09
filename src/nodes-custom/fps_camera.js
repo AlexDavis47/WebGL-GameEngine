@@ -1,5 +1,7 @@
 import Camera3D from "../nodes-core/camera3d.js";
 import Model3D from "../nodes-core/model3d.js";
+import inputManager, {Keys} from "../input_manager.js";
+import {vec3, quat, glMatrix} from "gl-matrix";
 
 class FPSCamera extends Camera3D {
     constructor() {
@@ -8,26 +10,26 @@ class FPSCamera extends Camera3D {
 
         // FPS control properties
         this._moveSpeed = 5.0;
-        this._lookSpeed = 360000;  // Changed to be more intuitive in degrees
+        this._lookSpeed = 3;  // Changed to be more intuitive in degrees
 
         // Euler angles for rotation in degrees?
         this._pitch = 0;
         this._yaw = 0;
 
         // Cached movement vectors
-        this._forward = glMatrix.vec3.create();
-        this._right = glMatrix.vec3.create();
-        this._up = glMatrix.vec3.fromValues(0, 1, 0);
+        this._forward = vec3.create();
+        this._right = vec3.create();
+        this._up = vec3.fromValues(0, 1, 0);
 
         // Movement constraints (in radians)
         this._pitchLimit = {
-            min: -90,
-            max: 90
+            min: -89, // Allowing full 90 degrees causes math issues related to movement
+            max: 89
         };
     }
 
     update(deltaTime) {
-        if (isPointerLockActive()) {
+        if (inputManager.inputManager.isPointerLockActive()) {
             this.updateMovement(deltaTime);
             this.updateRotation();
         }
@@ -37,7 +39,7 @@ class FPSCamera extends Camera3D {
 
     updateMovement(deltaTime) {
         const moveAmount = this._moveSpeed * deltaTime;
-        const movement = glMatrix.vec3.create();
+        const movement = vec3.create();
 
         // Get world-space movement vectors
         this.getForwardVector(this._forward);
@@ -49,38 +51,38 @@ class FPSCamera extends Camera3D {
         this._right[1] = 0;
 
         // Normalize the vectors after zeroing Y
-        glMatrix.vec3.normalize(this._forward, this._forward);
-        glMatrix.vec3.normalize(this._right, this._right);
+        vec3.normalize(this._forward, this._forward);
+        vec3.normalize(this._right, this._right);
 
         // Process keyboard input
-        if (isKeyPressed(Keys.W)) {
-            glMatrix.vec3.scaleAndAdd(movement, movement, this._forward, moveAmount);
+        if (inputManager.isKeyPressed(Keys.W)) {
+            vec3.scaleAndAdd(movement, movement, this._forward, moveAmount);
         }
-        if (isKeyPressed(Keys.S)) {
-            glMatrix.vec3.scaleAndAdd(movement, movement, this._forward, -moveAmount);
+        if (inputManager.isKeyPressed(Keys.S)) {
+            vec3.scaleAndAdd(movement, movement, this._forward, -moveAmount);
         }
-        if (isKeyPressed(Keys.A)) {
-            glMatrix.vec3.scaleAndAdd(movement, movement, this._right, -moveAmount);
+        if (inputManager.isKeyPressed(Keys.A)) {
+            vec3.scaleAndAdd(movement, movement, this._right, -moveAmount);
         }
-        if (isKeyPressed(Keys.D)) {
-            glMatrix.vec3.scaleAndAdd(movement, movement, this._right, moveAmount);
+        if (inputManager.isKeyPressed(Keys.D)) {
+            vec3.scaleAndAdd(movement, movement, this._right, moveAmount);
         }
-        if (isKeyPressed(Keys.SPACE)) {
-            glMatrix.vec3.scaleAndAdd(movement, movement, this._up, moveAmount);
+        if (inputManager.isKeyPressed(Keys.SPACE)) {
+            vec3.scaleAndAdd(movement, movement, this._up, moveAmount);
         }
-        if (isKeyPressed(Keys.SHIFT_LEFT)) {
-            glMatrix.vec3.scaleAndAdd(movement, movement, this._up, -moveAmount);
+        if (inputManager.isKeyPressed(Keys.SHIFT)) {
+            vec3.scaleAndAdd(movement, movement, this._up, -moveAmount);
         }
 
         // Apply movement if any
-        if (glMatrix.vec3.length(movement) > 0) {
+        if (vec3.length(movement) > 0) {
             this.translateWorld(movement[0], movement[1], movement[2]);
         }
     }
 
     updateRotation() {
-        const dx = getMouseDeltaX();
-        const dy = getMouseDeltaY();
+        const dx = inputManager.getMouseDeltaX();
+        const dy = inputManager.getMouseDeltaY();
 
         if (dx !== 0 || dy !== 0) {
             // Convert mouse movement to radians

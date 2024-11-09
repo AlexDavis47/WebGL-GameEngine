@@ -5,6 +5,9 @@ import PointLight from "./nodes-core/point_light.js";
 import Gun from "./nodes-custom/gun.js";
 import PhysicsBody3D from "./nodes-core/physics_body_3d.js";
 import Player from "./nodes-custom/player.js";
+import inputManager, {Keys} from "./input_manager.js";
+import physicsManager from "./physics_manager.js";
+import StaticBody3D from "./nodes-core/static_body_3d.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -13,67 +16,69 @@ class TestScene extends Scene {
         this._camera = null;
     }
 
-    async init(gl) {
+    async init() {
         console.log('Initializing test scene...');
+        physicsManager.setGravity(0, -9.81, 0);
 
-        // Create and set up camera
+
+        // Player setup
         const player = new Player();
-        player.setPosition(0, 5, 5)
-            .setMoveSpeed(5.0)
-            .setRotationSpeed(0.1);
+        player.setCapsuleShape(0.2, 0.3);
         this.addChild(player);
-        this._camera = player._camera;
+        this.setActiveCamera(player._camera);
+        player.setPosition(0, 5, 0);
 
 
-        const ocean = new Model3D(gl);
+        const ocean = new Model3D();
         await ocean.loadModel('./assets/models/ocean/ocean.obj');
-        await ocean.setShaderFromFile('./shaders/water.glsl');
+        await ocean.setShaderFromFile('./assets/shaders/water.glsl');
         ocean.setPosition(0, -1, 0);
         ocean.setScale(10, 10, 10);
         this.addChild(ocean);
 
 
-        const sun = new PointLight(gl);
+        const sun = new PointLight();
         sun.setPosition(0, 1000, 1000)
         sun.setRange(10000);
         sun.setIntensity(1.0);
 
         this.addChild(sun);
 
-        // Island physics body
-        const island = new PhysicsBody3D();
+        // Island static body
+        const island = new StaticBody3D();
         await island.setCollisionFromOBJ('./assets/models/island/island.obj');
-        island.setMass(0)  // Make it static
-            .setPosition(0, -1, 0);
+        island.setPosition(0, 0, 0);
         this.addChild(island);
 
+
+
         // Island model
-        const islandVisual = new Model3D(gl);
+        const islandVisual = new Model3D();
         await islandVisual.loadModel('./assets/models/island/island.obj');
-        await islandVisual.setShaderFromFile('./shaders/phong.glsl');
+        await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
         island.addChild(islandVisual);
 
 
         // Initialize the scene hierarchy
-        super.init(gl);
+        await super.init();
     }
 
     async spawnTestBox() {
         const testBox = new PhysicsBody3D();
         await testBox.setCollisionFromOBJ('./assets/models/test_cube/cube.obj');
-        testBox.setMass(1)
-            .setPosition(0, 10, 0);
+        testBox.setMass(1);
+        testBox.setPosition(Math.random() * 10 - 5, 10, Math.random() * 10 - 5);
         this.addChild(testBox);
 
         const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
-        await boxVisual.setShaderFromFile('./shaders/phong.glsl');
+        await boxVisual.setShaderFromFile('./assets/shaders/phong.glsl');
         testBox.addChild(boxVisual);
     }
 
     update(deltaTime) {
         super.update(deltaTime);
-        if (isMouseButtonJustPressed(0)) {
+        if (inputManager.isKeyJustPressed(Keys.B)) {
             this.spawnTestBox();
         }
     }

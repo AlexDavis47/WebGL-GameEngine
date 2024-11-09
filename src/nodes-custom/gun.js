@@ -1,5 +1,7 @@
 import Model3D from "../nodes-core/model3d.js";
 import Bullet from "../nodes-custom/bullet.js";
+import inputManager from "../input_manager.js";
+import {vec3} from "gl-matrix";
 
 class Gun extends Model3D {
     constructor() {
@@ -52,10 +54,10 @@ class Gun extends Model3D {
         this.audio.play();
     }
 
-    ready() {
+    async ready() {
         super.ready();
-        this.loadModel('./assets/models/gun/gun.obj');
-        this.setShaderFromFile('./shaders/phong.glsl');
+        await this.loadModel('./assets/models/gun/gun.obj');
+        await this.setShaderFromFile('./assets/shaders/phong.glsl');
     }
 
     update(deltaTime) {
@@ -66,8 +68,8 @@ class Gun extends Model3D {
 
     updateGunPhysics(deltaTime) {
         // Get mouse movement
-        const deltaX = getMouseDeltaX();
-        const deltaY = getMouseDeltaY();
+        const deltaX = inputManager.getMouseDeltaX();
+        const deltaY = inputManager.getMouseDeltaY();
 
         // Update target rotation based on mouse movement
         this._targetRotation.y -= deltaX * this._config.MOUSE_SENSITIVITY;
@@ -130,7 +132,7 @@ class Gun extends Model3D {
     }
 
     handleInput() {
-        if (isMouseButtonJustPressed(0)) {
+        if (inputManager.isMouseButtonJustPressed(0)) {
             this.shoot();
         }
     }
@@ -149,8 +151,8 @@ class Gun extends Model3D {
         bullet.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
 
         // Calculate the target point by adding the forward vector to the position
-        const targetPoint = glMatrix.vec3.create();
-        glMatrix.vec3.add(targetPoint, worldPos, forward);
+        const targetPoint = vec3.create();
+        vec3.add(targetPoint, worldPos, forward);
 
         // Make bullet look at the target point
         bullet.lookAt(targetPoint);

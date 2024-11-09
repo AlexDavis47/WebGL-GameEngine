@@ -1,6 +1,8 @@
 import Node3D from './node3d.js';
 import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
+import shaderManager from '../shader_manager.js';
+import engine from "../engine.js";
 
 class Model3D extends Node3D {
     constructor() {
@@ -129,8 +131,6 @@ class Model3D extends Node3D {
     }
 
     setTexture(image, materialName = 'default') {
-
-
         // Create and setup texture
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -162,14 +162,20 @@ class Model3D extends Node3D {
     render() {
         if (!this._vao || !this.enabled) return;
 
-        const program = this._shaderProgram || gl.defaultProgram;
+        // Get the shader program (default if none set)
+        const program = this._shaderProgram || shaderManager.getDefaultProgram();
+
+        console.log()
+
         gl.useProgram(program.program);
+
+
 
         // Get scene from node hierarchy
         const scene = this.getRootNode();
 
         // Set all uniforms
-        gl.shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+        shaderManager.setUniforms(program, scene.activeCamera, this, scene);
 
         // Bind VAO and draw
         gl.bindVertexArray(this._vao);
@@ -179,6 +185,7 @@ class Model3D extends Node3D {
         // Render children
         super.render();
     }
+
 
     onDestroy() {
 
@@ -212,17 +219,10 @@ class Model3D extends Node3D {
         return this;
     }
 
-    setCustomShader(shaderOptions) {
-        this._shaderProgram = gl.shaderManager.createCustomShader(
-            `${this.name}_shader`,
-            shaderOptions
-        );
-        return this;
-    }
 
     async setShaderFromFile(shaderPath) {
         const shaderName = `${this.name}_${Date.now()}`;
-        this._shaderProgram = await gl.shaderManager.loadShader(shaderName, shaderPath);
+        this._shaderProgram = await shaderManager.loadShader(shaderName, shaderPath);
         return this;
     }
 }

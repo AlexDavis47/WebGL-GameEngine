@@ -2,17 +2,18 @@ import Model3D from "../nodes-core/model3d.js";
 
 class Bullet extends Model3D {
     constructor() {
-        super(gl);
+        super();
         this.name = "Bullet";
         this._speed = 10.0;
         this._maxLifeTime = 2.0;
         this._currentLifeTime = this._maxLifeTime;
     }
 
-    ready(gl) {
-        super.ready(gl);
-        this.loadModel('./assets/models/bullet/bullet.obj');
-        this.setShaderFromFile('./shaders/phong.glsl');
+
+    async init() {
+        await super.init();
+        await this.loadModel('./assets/models/bullet/bullet.obj');
+        await this.setShaderFromFile('./assets/shaders/phong.glsl');
         this.setScale(0.1, 0.1, 0.1);
     }
 
@@ -37,6 +38,7 @@ class Bullet extends Model3D {
         const movement = forward.map(component => component * this._speed * deltaTime);
         this.translateWorld(...movement); // Use world-space translation for consistent movement
     }
+
 
 }
 
