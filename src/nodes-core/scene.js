@@ -1,6 +1,7 @@
 import Node from './node.js';
 import Camera3D from './camera3d.js';
 import Node3D from "./node3d.js";
+import physicsManager from "../physics_manager.js";
 
 class Scene extends Node3D {
     constructor() {
@@ -32,7 +33,7 @@ class Scene extends Node3D {
     }
 
     // Scene initialization
-    init() {
+    async init() {
         if (!gl) {
             throw new Error("Scene requires a valid WebGL context for initialization");
         }
@@ -48,7 +49,7 @@ class Scene extends Node3D {
         }
 
         // Initialize all nodes in the scene
-        super.init();
+        await super.init();
     }
 
     setupGLState() {

@@ -19,7 +19,7 @@ class Engine {
     }
 
 
-    init(canvas) {
+    async init(canvas) {
         // Initialize WebGL
         this.gl = canvas.getContext('webgl2');
         if (!this.gl) {

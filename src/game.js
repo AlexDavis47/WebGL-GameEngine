@@ -4,6 +4,7 @@ import ShaderManager from './shader_manager.js';
 import { defaultVertexShader, defaultFragmentShader } from './default_shaders.js';
 import engine from "./engine.js";
 import input_manager from "./input_manager.js";
+import physicsManager from "./physics_manager.js";
 
 class Game {
     constructor(options = {}) {
@@ -37,7 +38,9 @@ class Game {
 
     async init() {
         // Initialize engine with our canvas
-        engine.init(this._canvas);
+        await engine.init(this._canvas);
+        await physicsManager.init();
+        await physicsManager.init();
 
         this.setupGLState();
         this.setupEvents();
@@ -139,8 +142,11 @@ class Game {
         deltaTime = Math.min(deltaTime, this._maxFrameTime);
 
         // Update
-        if (!this._isPaused && this._activeScene) {
-            this._activeScene.update(deltaTime);
+        if (!this._isPaused) {
+            physicsManager.step();
+            if (this._activeScene) {
+                this._activeScene.update(deltaTime);
+            }
         }
         this._accumulator -= this._fixedTimeStep;
 

@@ -130,8 +130,6 @@ class Model3D extends Node3D {
     }
 
     setTexture(image, materialName = 'default') {
-
-
         // Create and setup texture
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
