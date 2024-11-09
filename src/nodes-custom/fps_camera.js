@@ -29,7 +29,7 @@ class FPSCamera extends Camera3D {
     }
 
     update(deltaTime) {
-        if (inputManager.isPointerLockActive()) {
+        if (inputManager.inputManager.isPointerLockActive()) {
             this.updateMovement(deltaTime);
             this.updateRotation();
         }
