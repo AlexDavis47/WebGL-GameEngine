@@ -23,8 +23,8 @@ class FPSCamera extends Camera3D {
 
         // Movement constraints (in radians)
         this._pitchLimit = {
-            min: -90,
-            max: 90
+            min: -89, // Allowing full 90 degrees causes math issues related to movement
+            max: 89
         };
     }
 
