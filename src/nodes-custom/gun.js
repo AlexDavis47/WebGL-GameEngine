@@ -149,8 +149,8 @@ class Gun extends Model3D {
         bullet.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
 
         // Calculate the target point by adding the forward vector to the position
-        const targetPoint = glMatrix.vec3.create();
-        glMatrix.vec3.add(targetPoint, worldPos, forward);
+        const targetPoint = vec3.create();
+        vec3.add(targetPoint, worldPos, forward);
 
         // Make bullet look at the target point
         bullet.lookAt(targetPoint);

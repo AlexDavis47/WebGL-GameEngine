@@ -1,8 +1,10 @@
 // Utility functions for quaternion conversions because glMatrix HATES ME :(
+import { quat } from "gl-matrix";
+
 const QuaternionUtils = {
     // Convert quaternion to Euler angles (in radians)
-    toEulerRadians(quat) {
-        const [x, y, z, w] = quat;
+    toEulerRadians(quaternion) {
+        const [x, y, z, w] = quaternion;
 
         // Roll (x-axis rotation)
         const sinr_cosp = 2 * (w * x + y * z);
@@ -28,7 +30,7 @@ const QuaternionUtils = {
 
     // Convert Euler angles (in radians) to quaternion
     fromEulerRadians(x, y, z) {
-        const quat = glMatrix.quat.create();
+        const quaternion = quat.create();
 
         // Calculate quaternion components
         const cr = Math.cos(x * 0.5);
@@ -38,12 +40,12 @@ const QuaternionUtils = {
         const cy = Math.cos(z * 0.5);
         const sy = Math.sin(z * 0.5);
 
-        quat[3] = cr * cp * cy + sr * sp * sy; // w
-        quat[0] = sr * cp * cy - cr * sp * sy; // x
-        quat[1] = cr * sp * cy + sr * cp * sy; // y
-        quat[2] = cr * cp * sy - sr * sp * cy; // z
+        quaternion[3] = cr * cp * cy + sr * sp * sy; // w
+        quaternion[0] = sr * cp * cy - cr * sp * sy; // x
+        quaternion[1] = cr * sp * cy + sr * cp * sy; // y
+        quaternion[2] = cr * cp * sy - sr * sp * cy; // z
 
-        return quat;
+        return quaternion;
     },
 
     // Degree/Radian conversion helpers

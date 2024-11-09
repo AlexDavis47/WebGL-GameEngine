@@ -29,6 +29,8 @@ class InputManager {
         return this;
     }
 
+
+
     initialize(canvas) {
         // Initialize pointer lock
         canvas.addEventListener('click', () => {

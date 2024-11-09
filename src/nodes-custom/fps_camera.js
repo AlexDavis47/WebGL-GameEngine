@@ -1,7 +1,7 @@
 import Camera3D from "../nodes-core/camera3d.js";
 import Model3D from "../nodes-core/model3d.js";
 import inputManager, {Keys} from "../input_manager.js";
-import {vec3} from "gl-matrix";
+import {vec3, quat, glMatrix} from "gl-matrix";
 
 class FPSCamera extends Camera3D {
     constructor() {
@@ -10,7 +10,7 @@ class FPSCamera extends Camera3D {
 
         // FPS control properties
         this._moveSpeed = 5.0;
-        this._lookSpeed = 360000;  // Changed to be more intuitive in degrees
+        this._lookSpeed = 3;  // Changed to be more intuitive in degrees
 
         // Euler angles for rotation in degrees?
         this._pitch = 0;

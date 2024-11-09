@@ -80,7 +80,7 @@ class Player extends CharacterBody3D {
         }
 
         // Calculate movement direction
-        const moveDir = glMatrix.vec3.create();
+        const moveDir = vec3.create();
 
         if (inputManager.isKeyPressed(Keys.W)) moveDir[2] -= 1;
         if (inputManager.isKeyPressed(Keys.S)) moveDir[2] += 1;
@@ -88,12 +88,12 @@ class Player extends CharacterBody3D {
         if (inputManager.isKeyPressed(Keys.D)) moveDir[0] += 1;
 
         // Apply movement in facing direction
-        if (glMatrix.vec3.length(moveDir) > 0) {
-            glMatrix.vec3.normalize(moveDir, moveDir);
+        if (vec3.length(moveDir) > 0) {
+            vec3.normalize(moveDir, moveDir);
 
-            const rotationQuat = glMatrix.quat.create();
-            glMatrix.quat.setAxisAngle(rotationQuat, [0, 1, 0], this._yaw * Math.PI / 180);
-            glMatrix.vec3.transformQuat(moveDir, moveDir, rotationQuat);
+            const rotationQuat = quat.create();
+            quat.setAxisAngle(rotationQuat, [0, 1, 0], this._yaw * Math.PI / 180);
+            vec3.transformQuat(moveDir, moveDir, rotationQuat);
 
             this.setVelocity(
                 moveDir[0] * this._moveSpeed,

@@ -265,7 +265,7 @@ class PhysicsBody3D extends Node3D {
                 // Update Node3D transform without triggering physics updates
                 this._updateFromPhysics = true;
                 this.setPositionWorld(origin.x(), origin.y(), origin.z());
-                glMatrix.quat.set(
+                quat.set(
                     this._localRotationQuat,
                     rotation.x(),
                     rotation.y(),

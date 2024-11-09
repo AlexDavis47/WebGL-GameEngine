@@ -1,5 +1,6 @@
 import { mat4, vec3 } from 'gl-matrix';
 import shaderManager from './shader_manager';
+import inputManager from './input_manager';
 
 // This is a singleton class, contains helpful globals and init code.
 class Engine {
@@ -31,6 +32,9 @@ class Engine {
         // Initialize shader manager after GL context is created
         shaderManager.initialize();
 
+        inputManager.initialize(canvas);
+
+
         return this;
     }
 
@@ -42,8 +46,5 @@ class Engine {
     }
 }
 
-// Create the instance
 const instance = new Engine();
-
-// Export the instance directly
 export default instance;

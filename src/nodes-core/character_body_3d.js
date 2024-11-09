@@ -6,12 +6,12 @@ class CharacterBody3D extends PhysicsBody3D {
         this.name = "CharacterBody3D";
 
         // Core movement properties
-        this.velocity = glMatrix.vec3.create();
-        this.upDirection = glMatrix.vec3.fromValues(0, 1, 0);
+        this.velocity = vec3.create();
+        this.upDirection = vec3.fromValues(0, 1, 0);
 
         // Physics state
         this.isOnFloor = false;
-        this.groundNormal = glMatrix.vec3.fromValues(0, 1, 0);
+        this.groundNormal = vec3.fromValues(0, 1, 0);
         this.groundCheckDistance = 1.0;
     }
 
@@ -113,8 +113,8 @@ class CharacterBody3D extends PhysicsBody3D {
         }
 
         // Calculate movement
-        const movement = glMatrix.vec3.scale(
-            glMatrix.vec3.create(),
+        const movement = vec3.scale(
+            vec3.create(),
             this.velocity,
             deltaTime
         );
@@ -138,12 +138,12 @@ class CharacterBody3D extends PhysicsBody3D {
     }
 
     setVelocity(x, y, z) {
-        glMatrix.vec3.set(this.velocity, x, y, z);
+        vec3.set(this.velocity, x, y, z);
         return this;
     }
 
     getVelocity() {
-        return glMatrix.vec3.clone(this.velocity);
+        return vec3.clone(this.velocity);
     }
 
     isOnGround() {
