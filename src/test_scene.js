@@ -17,17 +17,16 @@ class TestScene extends Scene {
         console.log('Initializing test scene...');
 
         // Create and set up camera
-        const player = new Player();
-        player.setPosition(0, 5, 5)
-            .setMoveSpeed(5.0)
-            .setRotationSpeed(0.1);
-        this.addChild(player);
-        this._camera = player._camera;
+        const camera = new FPSCamera(gl);
+        camera.setPosition(0, 2, 5);
+        this.setActiveCamera(camera);
+        this.addChild(camera);
+
 
 
         const ocean = new Model3D(gl);
         await ocean.loadModel('./assets/models/ocean/ocean.obj');
-        await ocean.setShaderFromFile('./shaders/water.glsl');
+        await ocean.setShaderFromFile('/assets/shaders/water.glsl');
         ocean.setPosition(0, -1, 0);
         ocean.setScale(10, 10, 10);
         this.addChild(ocean);
@@ -40,18 +39,12 @@ class TestScene extends Scene {
 
         this.addChild(sun);
 
-        // Island physics body
-        const island = new PhysicsBody3D();
-        await island.setCollisionFromOBJ('./assets/models/island/island.obj');
-        island.setMass(0)  // Make it static
-            .setPosition(0, -1, 0);
-        this.addChild(island);
 
         // Island model
         const islandVisual = new Model3D(gl);
         await islandVisual.loadModel('./assets/models/island/island.obj');
-        await islandVisual.setShaderFromFile('./shaders/phong.glsl');
-        island.addChild(islandVisual);
+        await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
+        this.addChild(islandVisual);
 
 
         // Initialize the scene hierarchy
@@ -73,9 +66,6 @@ class TestScene extends Scene {
 
     update(deltaTime) {
         super.update(deltaTime);
-        if (isMouseButtonJustPressed(0)) {
-            this.spawnTestBox();
-        }
     }
 }
 

@@ -1,6 +1,7 @@
 import Node3D from './node3d.js';
 import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
+import shaderManager from '../shader_manager.js';
 
 class Model3D extends Node3D {
     constructor() {
@@ -169,7 +170,7 @@ class Model3D extends Node3D {
         const scene = this.getRootNode();
 
         // Set all uniforms
-        gl.shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+        shaderManager.setUniforms(program, scene.activeCamera, this, scene);
 
         // Bind VAO and draw
         gl.bindVertexArray(this._vao);
@@ -222,7 +223,7 @@ class Model3D extends Node3D {
 
     async setShaderFromFile(shaderPath) {
         const shaderName = `${this.name}_${Date.now()}`;
-        this._shaderProgram = await gl.shaderManager.loadShader(shaderName, shaderPath);
+        this._shaderProgram = await shaderManager.loadShader(shaderName, shaderPath);
         return this;
     }
 }

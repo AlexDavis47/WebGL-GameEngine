@@ -1,12 +1,35 @@
 import Light from "./nodes-core/light.js";
+import {mat4} from "gl-matrix";
 
 class ShaderManager {
     constructor() {
+        if (ShaderManager.instance) {
+            return ShaderManager.instance;
+        }
+        ShaderManager.instance = this;
+
         this.shaderPrograms = new Map();
         this.defaultProgram = null;
+        this.initialized = false;
+
+        return this;
+    }
+
+    static getInstance() {
+        if (!ShaderManager.instance) {
+            ShaderManager.instance = new ShaderManager();
+        }
+        return ShaderManager.instance;
+    }
+
+
+    initialize() {
+        if (this.initialized) return;
 
         this.initializeSpatialShader();
+        this.initialized = true;
     }
+
 
     initializeSpatialShader() {
         const spatialVertex = `#version 300 es
@@ -204,17 +227,27 @@ class ShaderManager {
 
     async loadShader(name, path) {
         try {
-            const response = await fetch(path);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            let shaderCode;
+
+            // If it's already a string (imported shader), use it directly
+            if (typeof path === 'string' && path.includes('\n')) {
+                shaderCode = path;
+            } else {
+                // Otherwise, fetch it
+                const response = await fetch(path);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                shaderCode = await response.text();
             }
-            const shaderCode = await response.text();
+
             return this.createCustomShader(name, { shaderCode });
         } catch (error) {
             console.error(`Error loading shader from ${path}:`, error);
             throw error;
         }
     }
+
 
     getProgram(name) {
         return this.shaderPrograms.get(name);
@@ -249,9 +282,9 @@ class ShaderManager {
         gl.uniformMatrix4fv(uniforms.get('u_projectionMatrix'), false, camera.projectionMatrix);
 
         // Normal matrix (inverse transpose of world matrix)
-        const normalMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.invert(normalMatrix, model.worldMatrix);
-        glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+        const normalMatrix = mat4.create();
+        mat4.invert(normalMatrix, model.worldMatrix);
+        mat4.transpose(normalMatrix, normalMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_normalMatrix'), false, normalMatrix);
 
         // Use proper world position from Node3D
@@ -326,4 +359,5 @@ class ShaderManager {
 
 }
 
-export default ShaderManager;
+const instance = new ShaderManager();
+export default instance;

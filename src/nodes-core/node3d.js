@@ -1,5 +1,6 @@
 import Node from './node.js';
 import QuaternionUtils from "../util/quaternion_utils.js";
+import {vec3, mat4, quat} from "gl-matrix";
 
 class Node3D extends Node {
     constructor() {
@@ -7,19 +8,19 @@ class Node3D extends Node {
         this.name = "Node3D";
 
         // Transform components
-        this._localPosition = glMatrix.vec3.create();
-        this._localRotationQuat = glMatrix.quat.create();
-        this._localScale = glMatrix.vec3.fromValues(1, 1, 1);
+        this._localPosition = vec3.create();
+        this._localRotationQuat = quat.create();
+        this._localScale = vec3.fromValues(1, 1, 1);
 
         // World transform components
-        this._worldPosition = glMatrix.vec3.create();
-        this._worldRotationQuat = glMatrix.quat.create();
-        this._worldScale = glMatrix.vec3.fromValues(1, 1, 1);
+        this._worldPosition = vec3.create();
+        this._worldRotationQuat = quat.create();
+        this._worldScale = vec3.fromValues(1, 1, 1);
 
         // Matrices
-        this._localMatrix = glMatrix.mat4.create();
-        this._worldMatrix = glMatrix.mat4.create();
-        this._inverseWorldMatrix = glMatrix.mat4.create();
+        this._localMatrix = mat4.create();
+        this._worldMatrix = mat4.create();
+        this._inverseWorldMatrix = mat4.create();
 
         // Flags
         this._dirty = true;
@@ -29,7 +30,7 @@ class Node3D extends Node {
 
     // Local Position Methods
     setPosition(x, y, z) {
-        glMatrix.vec3.set(this._localPosition, x, y, z);
+        vec3.set(this._localPosition, x, y, z);
         this.setDirty();
         return this;
     }
@@ -53,7 +54,7 @@ class Node3D extends Node {
     }
 
     getPosition() {
-        return glMatrix.vec3.clone(this._localPosition);
+        return vec3.clone(this._localPosition);
     }
 
     getPositionX() {
@@ -80,14 +81,14 @@ class Node3D extends Node {
             return this.setPosition(x, y, z);
         }
 
-        const worldPos = glMatrix.vec3.fromValues(x, y, z);
+        const worldPos = vec3.fromValues(x, y, z);
         try {
             const parentInverse = this.parent.inverseWorldMatrix;
             if (!parentInverse) {
                 console.warn('Parent inverse matrix not available, setting local position directly');
                 return this.setPosition(x, y, z);
             }
-            glMatrix.vec3.transformMat4(this._localPosition, worldPos, parentInverse);
+            vec3.transformMat4(this._localPosition, worldPos, parentInverse);
             this.setDirty();
         } catch (error) {
             console.warn('Error transforming position, falling back to direct position', error);
@@ -98,7 +99,7 @@ class Node3D extends Node {
 
     getPositionWorld() {
         this.updateWorldMatrix();
-        return glMatrix.vec3.clone(this._worldPosition);
+        return vec3.clone(this._worldPosition);
     }
 
     // Local Rotation Methods (in degrees)
@@ -159,9 +160,9 @@ class Node3D extends Node {
         const zRad = QuaternionUtils.toRadians(z);
 
         const worldRot = QuaternionUtils.fromEulerRadians(xRad, yRad, zRad);
-        const parentInverseRot = glMatrix.quat.create();
-        glMatrix.quat.conjugate(parentInverseRot, this.parent._worldRotationQuat);
-        glMatrix.quat.multiply(this._localRotationQuat, parentInverseRot, worldRot);
+        const parentInverseRot = quat.create();
+        quat.conjugate(parentInverseRot, this.parent._worldRotationQuat);
+        quat.multiply(this._localRotationQuat, parentInverseRot, worldRot);
 
         this.setDirty();
         return this;
@@ -179,7 +180,7 @@ class Node3D extends Node {
 
     // Scale Methods
     setScale(x, y, z) {
-        glMatrix.vec3.set(this._localScale, x, y, z);
+        vec3.set(this._localScale, x, y, z);
         this.setDirty();
         return this;
     }
@@ -207,7 +208,7 @@ class Node3D extends Node {
     }
 
     getScale() {
-        return glMatrix.vec3.clone(this._localScale);
+        return vec3.clone(this._localScale);
     }
 
     getScaleX() {
@@ -224,15 +225,15 @@ class Node3D extends Node {
 
     // Relative Transform Methods
     translate(x, y, z) {
-        const translation = glMatrix.vec3.fromValues(x, y, z);
-        glMatrix.vec3.transformQuat(translation, translation, this._localRotationQuat);
-        glMatrix.vec3.add(this._localPosition, this._localPosition, translation);
+        const translation = vec3.fromValues(x, y, z);
+        vec3.transformQuat(translation, translation, this._localRotationQuat);
+        vec3.add(this._localPosition, this._localPosition, translation);
         this.setDirty();
         return this;
     }
 
     translateWorld(x, y, z) {
-        glMatrix.vec3.add(this._localPosition, this._localPosition, [x, y, z]);
+        vec3.add(this._localPosition, this._localPosition, [x, y, z]);
         this.setDirty();
         return this;
     }
@@ -243,7 +244,7 @@ class Node3D extends Node {
         const zRad = QuaternionUtils.toRadians(z);
 
         const rotation = QuaternionUtils.fromEulerRadians(xRad, yRad, zRad);
-        glMatrix.quat.multiply(this._localRotationQuat, this._localRotationQuat, rotation);
+        quat.multiply(this._localRotationQuat, this._localRotationQuat, rotation);
 
         this.setDirty();
         return this;
@@ -253,35 +254,35 @@ class Node3D extends Node {
         const rad = QuaternionUtils.toRadians(degrees);
         const worldPos = this.getPositionWorld();
 
-        const rotation = glMatrix.quat.create();
-        glMatrix.quat.setAxisAngle(rotation, axis, rad);
+        const rotation = quat.create();
+        quat.setAxisAngle(rotation, axis, rad);
 
-        glMatrix.vec3.subtract(worldPos, worldPos, point);
-        glMatrix.vec3.transformQuat(worldPos, worldPos, rotation);
-        glMatrix.vec3.add(worldPos, worldPos, point);
+        vec3.subtract(worldPos, worldPos, point);
+        vec3.transformQuat(worldPos, worldPos, rotation);
+        vec3.add(worldPos, worldPos, point);
 
         this.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
 
         const worldRot = this._worldRotationQuat;
-        glMatrix.quat.multiply(worldRot, rotation, worldRot);
+        quat.multiply(worldRot, rotation, worldRot);
 
         return this;
     }
 
-    lookAt(target, up = glMatrix.vec3.fromValues(0, 1, 0)) {
+    lookAt(target, up = vec3.fromValues(0, 1, 0)) {
         const worldPos = this.getPositionWorld();
-        const lookAtMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.targetTo(lookAtMatrix, worldPos, target, up);
+        const lookAtMatrix = mat4.create();
+        mat4.targetTo(lookAtMatrix, worldPos, target, up);
 
-        const worldRot = glMatrix.quat.create();
-        glMatrix.mat4.getRotation(worldRot, lookAtMatrix);
+        const worldRot = quat.create();
+        mat4.getRotation(worldRot, lookAtMatrix);
 
         if (this.parent) {
-            const parentInverseRot = glMatrix.quat.create();
-            glMatrix.quat.conjugate(parentInverseRot, this.parent._worldRotationQuat);
-            glMatrix.quat.multiply(this._localRotationQuat, parentInverseRot, worldRot);
+            const parentInverseRot = quat.create();
+            quat.conjugate(parentInverseRot, this.parent._worldRotationQuat);
+            quat.multiply(this._localRotationQuat, parentInverseRot, worldRot);
         } else {
-            glMatrix.quat.copy(this._localRotationQuat, worldRot);
+            quat.copy(this._localRotationQuat, worldRot);
         }
 
         this.setDirty();
@@ -289,24 +290,24 @@ class Node3D extends Node {
     }
 
     // Direction Vectors
-    getForwardVector(out = glMatrix.vec3.create()) {
-        const forward = glMatrix.vec3.fromValues(0, 0, -1);
+    getForwardVector(out = vec3.create()) {
+        const forward = vec3.fromValues(0, 0, -1);
         this.updateWorldMatrix();
-        glMatrix.vec3.transformQuat(out, forward, this._worldRotationQuat);
+        vec3.transformQuat(out, forward, this._worldRotationQuat);
         return out;
     }
 
-    getRightVector(out = glMatrix.vec3.create()) {
-        const right = glMatrix.vec3.fromValues(1, 0, 0);
+    getRightVector(out = vec3.create()) {
+        const right = vec3.fromValues(1, 0, 0);
         this.updateWorldMatrix();
-        glMatrix.vec3.transformQuat(out, right, this._worldRotationQuat);
+        vec3.transformQuat(out, right, this._worldRotationQuat);
         return out;
     }
 
-    getUpVector(out = glMatrix.vec3.create()) {
-        const up = glMatrix.vec3.fromValues(0, 1, 0);
+    getUpVector(out = vec3.create()) {
+        const up = vec3.fromValues(0, 1, 0);
         this.updateWorldMatrix();
-        glMatrix.vec3.transformQuat(out, up, this._worldRotationQuat);
+        vec3.transformQuat(out, up, this._worldRotationQuat);
         return out;
     }
 
@@ -323,7 +324,7 @@ class Node3D extends Node {
     }
 
     updateLocalMatrix() {
-        glMatrix.mat4.fromRotationTranslationScale(
+        mat4.fromRotationTranslationScale(
             this._localMatrix,
             this._localRotationQuat,
             this._localPosition,
@@ -339,16 +340,16 @@ class Node3D extends Node {
 
         if (this.parent instanceof Node3D) {
             const parentWorld = this.parent.worldMatrix;
-            glMatrix.mat4.multiply(this._worldMatrix, parentWorld, this._localMatrix);
+            mat4.multiply(this._worldMatrix, parentWorld, this._localMatrix);
 
-            glMatrix.mat4.getTranslation(this._worldPosition, this._worldMatrix);
-            glMatrix.mat4.getRotation(this._worldRotationQuat, this._worldMatrix);
-            glMatrix.mat4.getScaling(this._worldScale, this._worldMatrix);
+            mat4.getTranslation(this._worldPosition, this._worldMatrix);
+            mat4.getRotation(this._worldRotationQuat, this._worldMatrix);
+            mat4.getScaling(this._worldScale, this._worldMatrix);
         } else {
-            glMatrix.mat4.copy(this._worldMatrix, this._localMatrix);
-            glMatrix.vec3.copy(this._worldPosition, this._localPosition);
-            glMatrix.quat.copy(this._worldRotationQuat, this._localRotationQuat);
-            glMatrix.vec3.copy(this._worldScale, this._localScale);
+            mat4.copy(this._worldMatrix, this._localMatrix);
+            vec3.copy(this._worldPosition, this._localPosition);
+            quat.copy(this._worldRotationQuat, this._localRotationQuat);
+            vec3.copy(this._worldScale, this._localScale);
         }
     }
 
@@ -367,7 +368,7 @@ class Node3D extends Node {
     get inverseWorldMatrix() {
         this.updateWorldMatrix();
         if (this._inverseWorldDirty) {
-            glMatrix.mat4.invert(this._inverseWorldMatrix, this._worldMatrix);
+            mat4.invert(this._inverseWorldMatrix, this._worldMatrix);
             this._inverseWorldDirty = false;
         }
         return this._inverseWorldMatrix;

@@ -75,17 +75,17 @@ class Player extends CharacterBody3D {
         }
 
         // Handle jumping
-        if (isKeyPressed(Keys.SPACE) && this.isOnGround()) {
+        if (inputManager.isKeyPressed(Keys.SPACE) && this.isOnGround()) {
             velocityY = this._jumpForce;
         }
 
         // Calculate movement direction
         const moveDir = glMatrix.vec3.create();
 
-        if (isKeyPressed(Keys.W)) moveDir[2] -= 1;
-        if (isKeyPressed(Keys.S)) moveDir[2] += 1;
-        if (isKeyPressed(Keys.A)) moveDir[0] -= 1;
-        if (isKeyPressed(Keys.D)) moveDir[0] += 1;
+        if (inputManager.isKeyPressed(Keys.W)) moveDir[2] -= 1;
+        if (inputManager.isKeyPressed(Keys.S)) moveDir[2] += 1;
+        if (inputManager.isKeyPressed(Keys.A)) moveDir[0] -= 1;
+        if (inputManager.isKeyPressed(Keys.D)) moveDir[0] += 1;
 
         // Apply movement in facing direction
         if (glMatrix.vec3.length(moveDir) > 0) {

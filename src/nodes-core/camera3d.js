@@ -1,4 +1,5 @@
 import Node3D from "./node3d.js";
+import {glMatrix, mat4, vec4} from "gl-matrix";
 
 class Camera3D extends Node3D {
     constructor() {
@@ -13,30 +14,30 @@ class Camera3D extends Node3D {
         this._orthoSize = 10;
 
         // Matrices
-        this._projectionMatrix = glMatrix.mat4.create();
-        this._viewMatrix = glMatrix.mat4.create();
+        this._projectionMatrix = mat4.create();
+        this._viewMatrix = mat4.create();
         this._projectionDirty = true;
 
         // Initialize frustum planes
         this._frustumPlanes = {
-            near: glMatrix.vec4.create(),
-            far: glMatrix.vec4.create(),
-            left: glMatrix.vec4.create(),
-            right: glMatrix.vec4.create(),
-            top: glMatrix.vec4.create(),
-            bottom: glMatrix.vec4.create()
+            near: vec4.create(),
+            far: vec4.create(),
+            left: vec4.create(),
+            right: vec4.create(),
+            top: vec4.create(),
+            bottom: vec4.create()
         };
     }
 
     // Matrix management
     updateViewMatrix() {
         // View matrix is inverse of world matrix
-        glMatrix.mat4.invert(this._viewMatrix, this.worldMatrix);
+        mat4.invert(this._viewMatrix, this.worldMatrix);
     }
 
     updateProjectionMatrix() {
         if (this._isPerspective) {
-            const fovRad = glMatrix.glMatrix.toRadian(this._fov);
+            const fovRad = glMatrix.toRadian(this._fov);
             console.log('Updating projection matrix with:', {
                 fovDegrees: this._fov,
                 fovRadians: fovRad,
@@ -45,7 +46,7 @@ class Camera3D extends Node3D {
                 far: this._far
             });
 
-            glMatrix.mat4.perspective(
+            mat4.perspective(
                 this._projectionMatrix,
                 fovRad,
                 this._aspect,
@@ -54,7 +55,7 @@ class Camera3D extends Node3D {
             );
         } else {
             const size = this._orthoSize;
-            glMatrix.mat4.ortho(
+            mat4.ortho(
                 this._projectionMatrix,
                 -size * this._aspect,
                 size * this._aspect,
@@ -134,8 +135,8 @@ class Camera3D extends Node3D {
             return;
         }
 
-        const vp = glMatrix.mat4.create();
-        glMatrix.mat4.multiply(vp, this.projectionMatrix, this.viewMatrix);
+        const vp = mat4.create();
+        mat4.multiply(vp, this.projectionMatrix, this.viewMatrix);
 
         // Left plane
         this.extractFrustumPlane(vp, 3, 0, this._frustumPlanes.left);
