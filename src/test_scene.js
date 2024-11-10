@@ -30,14 +30,16 @@ class TestScene extends Scene {
         this.setActiveCamera(player._camera);
         player.setPosition(0, 5, 0);
 
-
-        const ocean = new Model3D();
-        await ocean.loadModel('./assets/models/ocean/ocean.obj');
-        await ocean.setShaderFromFile('./assets/shaders/water.glsl');
-        ocean.setPosition(0, -1, 0);
-        ocean.setScale(10, 10, 10);
-        this.addChild(ocean);
-
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 5; j++) {
+                const ocean = new Model3D();
+                await ocean.loadModel('./assets/models/ocean/ocean.obj');
+                await ocean.setShaderFromFile('./assets/shaders/water.glsl');
+                ocean.setPosition(i * 500 - (500 * 2.5), -2, j * 500 - (500 * 2.5));
+                ocean.setScale(10, 10, 10);
+                this.addChild(ocean);
+            }
+        }
 
         const sun = new PointLight();
         sun.setPosition(0, 1000, 1000)
@@ -46,7 +48,6 @@ class TestScene extends Scene {
 
         this.addChild(sun);
 
-        // Island static body
         const island = new StaticBody3D();
         await island.setCollisionFromOBJ('./assets/models/island/island.obj');
         island.setPosition(0, 0, 0);
@@ -59,6 +60,26 @@ class TestScene extends Scene {
 
         island.addChild(islandVisual);
 
+        for (let i = 0; i < 25; i++) {
+            // Island static body
+            const island = new StaticBody3D();
+            await island.setCollisionFromOBJ('./assets/models/island/island.obj');
+            island.setPosition(Math.random() * 200 - 100, 0, Math.random() * 200 - 100);
+            island.setRotation(0, Math.random() * Math.PI * 2, 0);
+
+            this.addChild(island);
+            // Island model
+            const islandVisual = new Model3D();
+            await islandVisual.loadModel('./assets/models/island/island.obj');
+            await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
+
+            // move the island down based on it's distance from the center
+            const distance = Math.sqrt(island.getPositionWorld()[0] ** 2 + island.getPositionWorld()[2] ** 2);
+            island.setPositionY(-distance / 20);
+
+
+            island.addChild(islandVisual);
+        }
 
 
         // Initialize the scene hierarchy

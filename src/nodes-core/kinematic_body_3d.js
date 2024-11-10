@@ -20,7 +20,7 @@ class KinematicBody3D extends PhysicsBody3D {
             autoStepMaxHeight: 0.5,
             autoStepMinWidth: 0.2,
             enableDynamicBodies: true,
-            snapToGroundDistance: 0.1
+            snapToGroundDistance: 0.01
         };
 
         // State flags

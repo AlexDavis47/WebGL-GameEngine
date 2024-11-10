@@ -14,10 +14,10 @@ class Player extends KinematicBody3D {
         this._maxGroundSpeed = 10.0;
         this._groundAcceleration = 50.0;
         this._groundFriction = 60.0;
-        this._maxAirSpeed = 5.0;
+        this._maxAirSpeed = 10.0;
         this._airAcceleration = 35.0;
-        this._airFriction = 2.0;
-        this._jumpVelocity = 8.0;
+        this._airFriction = 0.0;
+        this._jumpVelocity = 15.0;
         this._gravity = -20.0;
 
         // Timers for jump and coyote time
@@ -109,7 +109,6 @@ class Player extends KinematicBody3D {
         if (inputManager.isKeyPressed(Keys.D)) moveDir[0] += 1; // Right
 
         let friction = this.isOnFloor() ? this._groundFriction : this._airFriction;
-
 
         // If there is any movement input, normalize the direction vector
         if (vec3.length(moveDir) > 0) {

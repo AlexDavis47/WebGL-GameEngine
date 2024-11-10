@@ -4,7 +4,7 @@ class Bullet extends Model3D {
     constructor() {
         super();
         this.name = "Bullet";
-        this._speed = 10.0;
+        this._speed = 35.0;
         this._maxLifeTime = 2.0;
         this._currentLifeTime = this._maxLifeTime;
     }
