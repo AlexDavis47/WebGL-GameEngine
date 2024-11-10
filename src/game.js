@@ -5,6 +5,7 @@ import { defaultVertexShader, defaultFragmentShader } from './default_shaders.js
 import engine from "./engine.js";
 import input_manager from "./input_manager.js";
 import physicsManager from "./physics_manager.js";
+import audioManager from "./audio_manager.js";
 
 class Game {
     constructor(options = {}) {
@@ -35,9 +36,11 @@ class Game {
         this.init().then(r => console.log('Game initialized'));
     }
 
+
     async init() {
         // Initialize engine with our canvas
         await engine.init(this._canvas);
+
 
         this.setupGLState();
         this.setupEvents();
@@ -130,6 +133,7 @@ class Game {
         // Update
         if (!this._isPaused) {
             physicsManager.step();
+            audioManager.update();
             if (this._activeScene) {
                 this._activeScene.update(deltaTime);
             }

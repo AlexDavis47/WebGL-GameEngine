@@ -8,6 +8,8 @@ import Player from "./nodes-custom/player.js";
 import inputManager, {Keys} from "./input_manager.js";
 import physicsManager from "./physics_manager.js";
 import StaticBody3D from "./nodes-core/static_body_3d.js";
+import AudioPlayer from "./nodes-core/audio_player.js";
+import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -59,6 +61,7 @@ class TestScene extends Scene {
         island.addChild(islandVisual);
 
 
+
         // Initialize the scene hierarchy
         await super.init();
     }
@@ -74,6 +77,13 @@ class TestScene extends Scene {
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
         await boxVisual.setShaderFromFile('./assets/shaders/phong.glsl');
         testBox.addChild(boxVisual);
+
+        const musicPlayer = new AudioPlayer3D();
+        await musicPlayer.loadSound('background-music', './assets/ambience/seagulls.mp3', {
+            loop: true
+        });
+        testBox.addChild(musicPlayer);
+        musicPlayer.play();
     }
 
     update(deltaTime) {

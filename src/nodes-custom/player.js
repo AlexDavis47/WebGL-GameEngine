@@ -3,6 +3,7 @@ import Camera3D from '../nodes-core/camera3d.js';
 import Gun from './gun.js';
 import { vec3 } from 'gl-matrix';
 import inputManager, { Keys } from "../input_manager.js";
+import AudioReceiver from "../nodes-core/audio_receiver.js";
 
 class Player extends KinematicBody3D {
     constructor() {
@@ -45,6 +46,9 @@ class Player extends KinematicBody3D {
             .setPositionY(-0.3)
             .setPositionZ(-0.4)
             .setScaleUniform(0.05);
+
+        const audio_receiver = new AudioReceiver();
+        this._camera.addChild(audio_receiver);
 
         // Movement direction vector
         this._inputVector = vec3.create();

@@ -2,6 +2,9 @@ import Model3D from "../nodes-core/model3d.js";
 import Bullet from "../nodes-custom/bullet.js";
 import inputManager from "../input_manager.js";
 import {vec3} from "gl-matrix";
+import AudioPlayer from "../nodes-core/audio_player.js";
+import audioManager from "../audio_manager.js";
+import AudioPlayer3D from "../nodes-core/audio_player_3d.js";
 
 class Gun extends Model3D {
     constructor() {
@@ -40,22 +43,25 @@ class Gun extends Model3D {
             RETURN_RATE: 0.95     // Rate at which target rotation returns to center
         };
 
-        this.audio = new Audio();
-        this.audio.volume = 0.3;
+        this._audioPlayer = new AudioPlayer();
+        this.addChild(this._audioPlayer);
     }
 
-    playSound(src) {
-        // Pause any currently playing sound
-        this.audio.pause();
-        this.audio.currentTime = 0;  // Reset time to start of the sound
-    
-        // Update the audio source and play
-        this.audio.src = src;
-        this.audio.play();
+    playSound() {
+        // Only play if audio system is unlocked
+        this._audioPlayer.play();
     }
+
 
     async ready() {
         super.ready();
+
+        // Preload the gun sound
+        await this._audioPlayer.loadSound('gunshot', './public/assets/sounds/bullet.mp3', {
+            loop: false,
+            volume: 0.3
+        });
+
         await this.loadModel('./assets/models/gun/gun.obj');
         await this.setShaderFromFile('./assets/shaders/phong.glsl');
     }
@@ -161,8 +167,9 @@ class Gun extends Model3D {
 
         this.getRootNode().addChild(bullet);
 
-        this.playSound('./assets/sounds/bullet.mp3');
+        this.playSound();
     }
+
 
     // Configuration setters
     setMouseSensitivity(value) {
