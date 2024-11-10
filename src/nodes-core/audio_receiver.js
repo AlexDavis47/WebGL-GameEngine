@@ -16,7 +16,7 @@ class AudioReceiver extends Node3D {
             const forward = this.getForwardVector();
             const up = this.getUpVector();
 
-            Howler.pos(position[0] * 0.01, position[1] * 0.01, position[2] * 0.01);
+            Howler.pos(position[0], position[1], position[2]);
             Howler.orientation(forward[0], forward[1], forward[2], up[0], up[1], up[2]);
 
             requestAnimationFrame(updateListener);
