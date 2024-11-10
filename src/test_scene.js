@@ -70,6 +70,7 @@ class TestScene extends Scene {
         await testBox.setCollisionFromOBJ('./assets/models/test_cube/cube.obj');
         testBox.setMass(1);
         testBox.setPosition(Math.random() * 10 - 5, 10, Math.random() * 10 - 5);
+
         this.addChild(testBox);
 
         const boxVisual = new Model3D();
