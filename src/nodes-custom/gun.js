@@ -55,7 +55,7 @@ class Gun extends Model3D {
         super.ready();
 
         // Preload the gun sound
-        await this._audioPlayer.loadSound('./public/assets/sounds/bullet.mp3', {
+        await this._audioPlayer.loadSound('./assets/sounds/bullet.mp3', {
             loop: false,
             volume: 0.3
         });
