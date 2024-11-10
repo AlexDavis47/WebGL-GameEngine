@@ -71,6 +71,7 @@ class TestScene extends Scene {
         testBox.setMass(1);
         testBox.setPosition(Math.random() * 10 - 5, 10, Math.random() * 10 - 5);
 
+
         this.addChild(testBox);
 
         const boxVisual = new Model3D();
