@@ -1,103 +1,76 @@
 import AudioPlayer from "./audio_player.js";
-import audioManager from "../audio_manager.js";
+import Node3D from "./node3d.js";
+
 
 class AudioPlayer3D extends AudioPlayer {
     constructor() {
         super();
         this.name = "AudioPlayer3D";
-
-        // Spatial settings based on Howler's example
-        this._spatialProps = {
+        this._updateCallback = null;
+        this._spatialSettings = {
             panningModel: 'HRTF',
             refDistance: 0.8,
             rolloffFactor: 2.5,
-            distanceModel: 'exponential',
-            maxDistance: 100,
-            coneInnerAngle: 360,
-            coneOuterAngle: 360,
-            coneOuterGain: 0
+            distanceModel: 'exponential'
         };
     }
 
-    async loadSound(id, url, options = {}) {
-        const absoluteUrl = url.startsWith('/') ? url : '/' + url;
-
-        this._sound = audioManager.loadSound(id, absoluteUrl, {
+    async loadSound(url, options = {}) {
+        // Merge base options with spatial settings
+        const spatialOptions = {
             ...options,
             spatial: true,
-            pannerAttr: this._spatialProps
-        });
+            pannerAttr: {
+                ...this._spatialSettings,
+                ...options.pannerAttr
+            }
+        };
 
-        // Set initial position after load
-        this._sound.once('load', () => {
-            this.updatePosition();
-        });
-
-        return new Promise((resolve, reject) => {
-            this._sound.once('load', resolve);
-            this._sound.once('loaderror', (_, error) => reject(error));
-        });
-    }
-
-    setSpatialProperties({
-                             refDistance = 0.8,
-                             rolloffFactor = 2.5,
-                             maxDistance = 25,
-                             distanceModel = 'exponential'
-                         } = {}) {
-        Object.assign(this._spatialProps, {
-            refDistance,
-            rolloffFactor,
-            maxDistance,
-            distanceModel
-        });
-
-        if (this._sound && this._currentId !== null) {
-            this._sound.pannerAttr(this._spatialProps, this._currentId);
-        }
-        return this;
-    }
-
-
-
-    updatePosition() {
-        if (this._currentId !== null && this._sound) {
-            const worldPos = this.getPositionWorld();
-            const forward = this.getForwardVector();
-
-            this._sound.pos(
-                worldPos[0],
-                worldPos[1],
-                worldPos[2],
-                this._currentId
-            );
-
-            this._sound.orientation(
-                forward[0],
-                forward[1],
-                forward[2],
-                this._currentId
-            );
-        }
+        await super.loadSound(url, spatialOptions);
     }
 
     play() {
-        if (!this._sound) return this;
+        super.play();
 
-        if (this._currentId !== null) {
-            this.stop();
+        // Start position updates only for 3D audio
+        if (this._isPlaying && !this._updateCallback) {
+            const updateSound = () => {
+                if (this.isDestroyed) {
+                    this.stop();
+                    return;
+                }
+                const pos = this.getPositionWorld();
+                this._sound.pos(pos[0] * 0.01, pos[1] * 0.01, pos[2] * 0.01, this._soundId);
+                this._updateCallback = requestAnimationFrame(updateSound);
+            };
+            updateSound();
         }
-
-        this._currentId = this._sound.play();
-        this.updatePosition();
 
         return this;
     }
 
+    stop() {
+        if (this._updateCallback) {
+            cancelAnimationFrame(this._updateCallback);
+            this._updateCallback = null;
+        }
+        return super.stop();
+    }
 
-    onPreUpdate() {
-        super.onPreUpdate();
-        this.updatePosition();
+    setSpatialSettings(settings = {}) {
+        Object.assign(this._spatialSettings, settings);
+        if (this._sound && this._soundId !== null) {
+            this._sound.pannerAttr(this._spatialSettings, this._soundId);
+        }
+        return this;
+    }
+
+    onDestroy() {
+        if (this._updateCallback) {
+            cancelAnimationFrame(this._updateCallback);
+            this._updateCallback = null;
+        }
+        super.onDestroy();
     }
 }
 

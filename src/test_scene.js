@@ -50,14 +50,13 @@ class TestScene extends Scene {
         const island = new StaticBody3D();
         await island.setCollisionFromOBJ('./assets/models/island/island.obj');
         island.setPosition(0, 0, 0);
+
         this.addChild(island);
-
-
-
         // Island model
         const islandVisual = new Model3D();
         await islandVisual.loadModel('./assets/models/island/island.obj');
         await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
+
         island.addChild(islandVisual);
 
 
@@ -75,15 +74,15 @@ class TestScene extends Scene {
 
         const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
-        await boxVisual.setShaderFromFile('./assets/shaders/phong.glsl');
+        await boxVisual.setShaderFromFile('./assets/shaders/toon.glsl');
         testBox.addChild(boxVisual);
 
-        const musicPlayer = new AudioPlayer3D();
-        await musicPlayer.loadSound('background-music', './assets/ambience/seagulls.mp3', {
+        const audioPlayer = new AudioPlayer3D();
+        await audioPlayer.loadSound('./assets/ambience/seagulls.mp3', {
             loop: true
         });
-        testBox.addChild(musicPlayer);
-        musicPlayer.play();
+        testBox.addChild(audioPlayer);
+        audioPlayer.play();
     }
 
     update(deltaTime) {

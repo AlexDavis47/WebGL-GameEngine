@@ -154,6 +154,7 @@ class PhysicsBody3D extends Node3D {
     }
 
     update(deltaTime) {
+
         if (this._rigidBody && !this.isStatic) {
             // Get the updated transform from physics
             const position = this._rigidBody.translation();
@@ -176,6 +177,7 @@ class PhysicsBody3D extends Node3D {
             this._collider = null;
         }
     }
+
 
     onDestroy() {
         this._cleanupPhysics();

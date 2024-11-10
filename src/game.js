@@ -133,7 +133,6 @@ class Game {
         // Update
         if (!this._isPaused) {
             physicsManager.step();
-            audioManager.update();
             if (this._activeScene) {
                 this._activeScene.update(deltaTime);
             }

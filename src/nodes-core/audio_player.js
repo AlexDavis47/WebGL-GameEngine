@@ -1,86 +1,82 @@
 // audio_player.js
 import Node3D from './node3d.js';
-import audioManager from '../audio_manager.js';
-import audio_manager from "../audio_manager.js";
+
 
 class AudioPlayer extends Node3D {
     constructor() {
         super();
         this.name = "AudioPlayer";
-
         this._sound = null;
         this._soundId = null;
-        this._currentId = null;
+        this._isPlaying = false;
+        this._autoplay = false;
         this._volume = 1.0;
-        this._loop = false;
     }
 
-    async loadSound(id, url, options = {}) {
-        const absoluteUrl = url.startsWith('/') ? url : '/' + url;
+    async loadSound(url, options = {}) {
+        this._autoplay = options.autoplay ?? false;
+        this._volume = options.volume ?? 1.0;
 
-        this._sound = audioManager.loadSound(id, absoluteUrl, {
+        this._sound = new Howl({
+            src: [url],
+            loop: options.loop ?? false,
             volume: this._volume,
-            loop: this._loop,
-            html5: false,
             ...options
         });
 
-        this._soundId = id;
-
-        return new Promise((resolve, reject) => {
-            this._sound.once('load', resolve);
-            this._sound.once('loaderror', (_, error) => reject(error));
-        });
+        // If autoplay was requested, play immediately
+        if (this._autoplay) {
+            this.play();
+        }
     }
 
     play() {
         if (!this._sound) return this;
 
-        if (this._currentId !== null) {
+        if (this._isPlaying) {
             this.stop();
         }
 
-        this._currentId = this._sound.play();
-        audioManager.playSound(this._sound, this._currentId);
-
-        console.log('Position:', this.getPositionWorld());
-
+        this._soundId = this._sound.play();
+        this._isPlaying = true;
         return this;
     }
 
     stop() {
-        if (this._currentId !== null) {
-            this._sound?.stop(this._currentId);
-            this._currentId = null;
-        }
+        if (!this._sound || !this._isPlaying) return this;
+
+        this._sound.stop(this._soundId);
+        this._isPlaying = false;
+        this._soundId = null;
         return this;
     }
 
     pause() {
-        if (this._currentId !== null) {
-            this._sound?.pause(this._currentId);
-        }
+        if (!this._sound || !this._isPlaying) return this;
+
+        this._sound.pause(this._soundId);
+        this._isPlaying = false;
+        return this;
+    }
+
+    resume() {
+        if (!this._sound || this._isPlaying) return this;
+
+        this._sound.play(this._soundId);
+        this._isPlaying = true;
         return this;
     }
 
     setVolume(volume) {
         this._volume = Math.max(0, Math.min(1, volume));
-        if (this._currentId !== null && this._sound) {
-            this._sound.volume(this._volume, this._currentId);
-        }
-        return this;
-    }
-
-    setLoop(loop) {
-        this._loop = loop;
-        if (this._currentId !== null && this._sound) {
-            this._sound.loop(loop, this._currentId);
+        if (this._sound && this._soundId !== null) {
+            this._sound.volume(this._volume, this._soundId);
         }
         return this;
     }
 
     isPlaying() {
-        return this._currentId !== null && this._sound?.playing(this._currentId);
+        return this._isPlaying;
     }
 
     onDestroy() {
@@ -88,5 +84,4 @@ class AudioPlayer extends Node3D {
         super.onDestroy();
     }
 }
-
 export default AudioPlayer;

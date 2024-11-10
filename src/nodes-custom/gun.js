@@ -3,8 +3,6 @@ import Bullet from "../nodes-custom/bullet.js";
 import inputManager from "../input_manager.js";
 import {vec3} from "gl-matrix";
 import AudioPlayer from "../nodes-core/audio_player.js";
-import audioManager from "../audio_manager.js";
-import AudioPlayer3D from "../nodes-core/audio_player_3d.js";
 
 class Gun extends Model3D {
     constructor() {
@@ -57,7 +55,7 @@ class Gun extends Model3D {
         super.ready();
 
         // Preload the gun sound
-        await this._audioPlayer.loadSound('gunshot', './public/assets/sounds/bullet.mp3', {
+        await this._audioPlayer.loadSound('./public/assets/sounds/bullet.mp3', {
             loop: false,
             volume: 0.3
         });

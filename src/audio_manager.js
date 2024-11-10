@@ -25,52 +25,6 @@ class AudioManager {
         return this;
     }
 
-
-    loadSound(id, url, options = {}) {
-        if (this._sounds.has(id)) return this._sounds.get(id);
-
-        const sound = new Howl({
-            src: Array.isArray(url) ? url : [url],
-            ...options
-        });
-
-        this._sounds.set(id, sound);
-        return sound;
-    }
-
-    playSound(sound, id = null) {
-        if (!sound) return;
-
-        if (!sound.playing(id)) {
-            sound.play(id);
-        }
-    }
-
-
-    setActiveReceiver(receiver) {
-        this._activeReceiver = receiver;
-    }
-
-
-    update() {
-        if (!this._activeReceiver) return;
-
-        const position = this._activeReceiver.getPositionWorld();
-        const forward = this._activeReceiver.getForwardVector();
-        const up = this._activeReceiver.getUpVector();
-
-        Howler.pos(
-            position[0],
-            position[1],
-            position[2]
-        );
-        Howler.orientation(
-            forward[0], forward[1], forward[2],
-            up[0], up[1], up[2]
-        );
-    }
-
-
     // Volume controls
     setGlobalVolume(volume) {
         this._globalVolume = Math.max(0, Math.min(1, volume));
