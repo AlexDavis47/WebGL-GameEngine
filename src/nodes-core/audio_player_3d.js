@@ -40,7 +40,7 @@ class AudioPlayer3D extends AudioPlayer {
                     return;
                 }
                 const pos = this.getPositionWorld();
-                this._sound.pos(pos[0] * 0.01, pos[1] * 0.01, pos[2] * 0.01, this._soundId);
+                this._sound.pos(pos[0], pos[1], pos[2], this._soundId);
                 this._updateCallback = requestAnimationFrame(updateSound);
             };
             updateSound();
