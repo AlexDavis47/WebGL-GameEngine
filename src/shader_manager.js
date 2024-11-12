@@ -168,25 +168,30 @@ class ShaderManager {
         return this.defaultProgram;
     }
 
-    // In ShaderManager.js
+    // In ShaderManager.js, modify beginPass:
+
     beginPass(passIndex, material) {
         const pass = material._passes[passIndex];
         if (!pass) return false;
 
-        // Skip framebuffer for final pass
+        // Get current viewport settings
+        const vp = gl.getParameter(gl.VIEWPORT);
+        const [vpX, vpY, vpWidth, vpHeight] = vp;
+
         const isLastPass = passIndex === material._passes.length - 1;
         if (isLastPass) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            // Use the same viewport settings as the game
+            gl.viewport(vpX, vpY, vpWidth, vpHeight);
             return true;
         }
 
-        // Create ping-pong buffers if they don't exist or if size changed
+        // Create or recreate buffers if needed
         if (!this.pingPongBuffers.read ||
-            this.pingPongBuffers.read.width !== gl.canvas.width ||
-            this.pingPongBuffers.read.height !== gl.canvas.height) {
+            this.pingPongBuffers.read.width !== vpWidth ||
+            this.pingPongBuffers.read.height !== vpHeight) {
 
-            // Clean up existing buffers if they exist
+            // Cleanup old buffers
             if (this.pingPongBuffers.read) {
                 this.cleanupFramebuffer(this.pingPongBuffers.read);
             }
@@ -194,14 +199,16 @@ class ShaderManager {
                 this.cleanupFramebuffer(this.pingPongBuffers.write);
             }
 
-            // Create new buffers
-            this.pingPongBuffers.read = this.createFramebuffer(gl.canvas.width, gl.canvas.height);
-            this.pingPongBuffers.write = this.createFramebuffer(gl.canvas.width, gl.canvas.height);
+            // Create new buffers at the viewport size
+            this.pingPongBuffers.read = this.createFramebuffer(vpWidth, vpHeight);
+            this.pingPongBuffers.write = this.createFramebuffer(vpWidth, vpHeight);
         }
 
-        // Bind write buffer for rendering
+        // Bind write buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongBuffers.write.framebuffer);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+        // Use the same viewport settings for intermediate passes
+        gl.viewport(vpX, vpY, vpWidth, vpHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         return true;
@@ -275,23 +282,24 @@ class ShaderManager {
     setTransformUniforms(program, camera, model) {
         const {uniforms} = program;
 
-
-        // Use proper matrix getters from new Node3D system
         gl.uniformMatrix4fv(uniforms.get('u_worldMatrix'), false, model.worldMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_viewMatrix'), false, camera.viewMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_projectionMatrix'), false, camera.projectionMatrix);
 
-        // Normal matrix (inverse transpose of world matrix)
         const normalMatrix = mat4.create();
         mat4.invert(normalMatrix, model.worldMatrix);
         mat4.transpose(normalMatrix, normalMatrix);
         gl.uniformMatrix4fv(uniforms.get('u_normalMatrix'), false, normalMatrix);
 
-        // Use proper world position from Node3D
         const cameraPos = new Float32Array(camera.getPositionWorld());
         gl.uniform3fv(uniforms.get('u_cameraPosition'), cameraPos);
-    }
 
+        // Add viewport uniform
+        const vp = gl.getParameter(gl.VIEWPORT);
+        if (uniforms.get('u_viewport')) {
+            gl.uniform4fv(uniforms.get('u_viewport'), new Float32Array(vp));
+        }
+    }
     setLightUniforms(program, scene) {
         const {uniforms} = program;
 

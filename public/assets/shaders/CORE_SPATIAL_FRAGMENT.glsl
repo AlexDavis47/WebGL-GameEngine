@@ -33,9 +33,12 @@ uniform vec3 u_cameraPosition;
 uniform sampler2D u_previousPass;
 uniform bool u_hasPreviousPass;
 
-// Transform uniforms (needed for screen-space calculation)
+// Transform uniforms
 uniform mat4 u_projectionMatrix;
 uniform mat4 u_viewMatrix;
+
+// Add viewport uniforms
+uniform vec4 u_viewport;  // x, y, width, height
 
 // Light uniforms
 uniform Light u_lights[8];
@@ -51,16 +54,19 @@ out vec4 fragColor;
 vec3 light(Light light);
 vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass);
 
-// Helper function to get screen-space coordinates
+// Helper function to get screen-space coordinates accounting for viewport
 vec2 getScreenSpaceCoords() {
-    // Transform world position to clip space
     vec4 clipSpace = u_projectionMatrix * u_viewMatrix * vec4(v_worldPos, 1.0);
-
-    // Perform perspective division
     vec3 ndc = clipSpace.xyz / clipSpace.w;
 
-    // Convert from NDC to UV coordinates
-    return vec2(ndc.x * 0.5 + 0.5, ndc.y * 0.5 + 0.5);
+    // Convert NDC to viewport coordinates
+    vec2 screenCoords = vec2(
+    (ndc.x * 0.5 + 0.5) * u_viewport.z + u_viewport.x,
+    (ndc.y * 0.5 + 0.5) * u_viewport.w + u_viewport.y
+    );
+
+    // Convert to texture coordinates (0 to 1)
+    return screenCoords / vec2(u_viewport.z, u_viewport.w);
 }
 
 void main() {
@@ -68,12 +74,10 @@ void main() {
 
     vec4 previousPass = vec4(0.0);
     if (u_hasPreviousPass) {
-        // Use screen-space coordinates for sampling previous pass
         vec2 screenUV = getScreenSpaceCoords();
         previousPass = texture(u_previousPass, screenUV);
     }
 
-    // Get color from fragment function
     fragColor = fragment(baseColor, normalize(v_normal), v_texcoord, previousPass);
 }
 
@@ -82,7 +86,6 @@ vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass) {
     vec3 lightContrib = vec3(0.0);
     vec3 ambient = vec3(0.0);
 
-    // Accumulate contribution from each light
     for(int i = 0; i < u_numLights; i++) {
         if(u_lights[i].type == LIGHT_AMBIENT) {
             ambient += u_lights[i].color * u_lights[i].intensity;
@@ -91,10 +94,8 @@ vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass) {
         }
     }
 
-    vec4 currentPassColor = vec4(baseColor * (lightContrib + ambient), 1.0);
-
-    // If we have a previous pass, let the custom shader handle how to use it
-    return u_hasPreviousPass ? currentPassColor : currentPassColor;
+    vec4 currentPass = vec4(baseColor * (lightContrib + ambient), 1.0);
+    return u_hasPreviousPass ? currentPass * previousPass : currentPass;
 }
 
 // Default light implementation
