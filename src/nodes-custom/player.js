@@ -51,38 +51,21 @@ class Player extends KinematicBody3D {
         const audio_receiver = new AudioReceiver();
         this._camera.addChild(audio_receiver);
 
-        // Movement direction vector
-        this._inputVector = vec3.create();
-
         this.footstep = new AudioPlayer();
+        this.footstepTimer = 0;
+        this.footstepInterval = 0.5;
+
         this.addChild(this.footstep);
-        this.footstepInterval = 600;  // Interval between footsteps in milliseconds
-        this.footstepTimer = null;    // Reference to the footstep timer
         this.isMoving = false;
+        this.moveDir = vec3.create();
     }
 
     async ready(){
         super.ready();
         await this.footstep.loadSound('/assets/sounds/footstep.mp3', {
-
+            minPitch: 0.8,
+            maxPitch: 1.2,
         });
-        this.footstep.play();
-    }
-
-    startFootstepTimer() {
-        if (this.footstepTimer) return; // Avoid starting multiple timers
-
-        // Play footstep sound at regular intervals
-        this.footstepTimer = setInterval(() => {
-            this.footstep.play();
-        }, this.footstepInterval);
-    }
-
-    stopFootstepTimer() {
-        if (this.footstepTimer) {
-            clearInterval(this.footstepTimer);
-            this.footstepTimer = null;
-        }
     }
 
     handleRotation() {
@@ -133,47 +116,39 @@ class Player extends KinematicBody3D {
         }
 
         // Get movement input vector (WASD keys)
-        const moveDir = vec3.create();
-        if (inputManager.isKeyPressed(Keys.W)) moveDir[2] -= 1; // Forward
-        if (inputManager.isKeyPressed(Keys.S)) moveDir[2] += 1; // Backward
-        if (inputManager.isKeyPressed(Keys.A)) moveDir[0] -= 1; // Left
-        if (inputManager.isKeyPressed(Keys.D)) moveDir[0] += 1; // Right
+        this.moveDir = vec3.create();
+        if (inputManager.isKeyPressed(Keys.W)) this.moveDir[2] -= 1; // Forward
+        if (inputManager.isKeyPressed(Keys.S)) this.moveDir[2] += 1; // Backward
+        if (inputManager.isKeyPressed(Keys.A)) this.moveDir[0] -= 1; // Left
+        if (inputManager.isKeyPressed(Keys.D)) this.moveDir[0] += 1; // Right
 
         let friction = this.isOnFloor() ? this._groundFriction : this._airFriction;
 
-        const isCurrentlyMoving = vec3.length(moveDir) > 0;
-        // Start or stop the footstep timer based on movement state
-        if (isCurrentlyMoving && !this.isMoving) {
-            this.startFootstepTimer();
-            this.isMoving = true;
-        } else if (!isCurrentlyMoving && this.isMoving) {
-            this.stopFootstepTimer();
-            this.isMoving = false;
-        }
+        const isCurrentlyMoving = vec3.length(this.moveDir) > 0;
 
         // If there is any movement input, normalize the direction vector
         if (isCurrentlyMoving) {
-            vec3.normalize(moveDir, moveDir); // Normalize the direction vector
+            vec3.normalize(this.moveDir, this.moveDir); // Normalize the direction vector
 
             // Get the forward and right vectors based on the player's yaw (camera orientation)
             const forward = this.getForwardVector();
             const right = this.getRightVector();
 
             // Calculate movement direction relative to the camera
-            vec3.scale(forward, forward, -moveDir[2]); // Negative because forward is -Z
-            vec3.scale(right, right, moveDir[0]);
+            vec3.scale(forward, forward, -this.moveDir[2]); // Negative because forward is -Z
+            vec3.scale(right, right, this.moveDir[0]);
 
             // Combine forward and right movement directions
-            vec3.add(moveDir, forward, right);
-            vec3.normalize(moveDir, moveDir); // Re-normalize the resulting vector to ensure unit length
+            vec3.add(this.moveDir, forward, right);
+            vec3.normalize(this.moveDir, this.moveDir); // Re-normalize the resulting vector to ensure unit length
 
             // Adjust movement speed based on whether the player is on the ground or in the air
             let maxSpeed = this.isOnFloor() ? this._maxGroundSpeed : this._maxAirSpeed;
             let acceleration = this.isOnFloor() ? this._groundAcceleration : this._airAcceleration;
 
             // Smoothly apply acceleration towards target velocity
-            velocity[0] = this.moveToward(velocity[0], moveDir[0] * maxSpeed, acceleration * deltaTime);
-            velocity[2] = this.moveToward(velocity[2], moveDir[2] * maxSpeed, acceleration * deltaTime);
+            velocity[0] = this.moveToward(velocity[0], this.moveDir[0] * maxSpeed, acceleration * deltaTime);
+            velocity[2] = this.moveToward(velocity[2], this.moveDir[2] * maxSpeed, acceleration * deltaTime);
         } else {
             // No movement input, apply friction (decelerate)
             velocity[0] = velocity[0] * (1 - friction * deltaTime);
@@ -183,9 +158,29 @@ class Player extends KinematicBody3D {
         // Update velocity
         this.setVelocity(velocity[0], velocity[1], velocity[2]);
 
+        this.handleFootstep(deltaTime);
+
         // Apply movement using character controller (move and slide)
         this.moveAndSlide(deltaTime);
     }
+
+    handleFootstep(deltaTime) {
+        const velocity = this.getVelocity();
+
+        this.isMoving = (vec3.length(this.moveDir) > 0.1);
+
+        if (this.isMoving) {
+            this.footstepTimer += deltaTime;
+            if (this.footstepTimer >= this.footstepInterval) {
+                this.footstep.play();
+                this.footstepTimer = 0;
+            }
+        } else {
+            this.footstep.stop();
+            this.footstepTimer = 0;
+        }
+    }
+
 
     // Move towards target value with smooth interpolation
     moveToward(current, target, maxChange) {

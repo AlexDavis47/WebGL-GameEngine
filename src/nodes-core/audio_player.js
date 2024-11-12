@@ -74,5 +74,13 @@ class AudioPlayer extends Node3D {
         }
         return this;
     }
+
+    setPitchRange(minPitch, maxPitch) {
+        this._minPitch = minPitch;
+        this._maxPitch = maxPitch;
+        return this;
+    }
+
+
 }
 export default AudioPlayer;

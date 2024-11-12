@@ -57,8 +57,12 @@ class Gun extends Model3D {
         // Preload the gun sound
         await this._audioPlayer.loadSound('./assets/sounds/bullet.mp3', {
             loop: false,
-            volume: 0.1
+            volume: 0.1,
+            minPitch: 0.8,
+            maxPitch: 1.2
         });
+
+
 
         await this.loadModel('./assets/models/gun/gun.obj');
         await this.setShaderFromFile('./assets/shaders/phong.glsl');
@@ -164,6 +168,7 @@ class Gun extends Model3D {
         bullet.translate(0.1, 0.15, -0.8);
 
         this.getRootNode().addChild(bullet);
+
 
         this.playSound();
     }
