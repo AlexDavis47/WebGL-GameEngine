@@ -4,5 +4,5 @@ export default defineConfig({
     server: {
         port: 3000
     },
-    assetsInclude: ['**/*.glsl', '**/*.obj', '**/*.mp3'],
+    assetsInclude: ['**/*.glsl', '**/*.obj', "**/*.mtl", '**/*.mp3', "**/*.wav", "**/*.png", "**/*.jpg", "**/*.jpeg"],
 });

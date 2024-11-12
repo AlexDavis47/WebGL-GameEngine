@@ -23,130 +23,38 @@ class ShaderManager {
     }
 
 
-    init() {
+    async init() {
         if (this.initialized) return;
 
-        this.initializeSpatialShader();
+        await this.initializeSpatialShader();
         this.initialized = true;
     }
 
+    async getShaderSource(path) {
+        try {
+            // Handle pre-loaded shader strings
+            if (typeof path === 'string' && path.includes('\n')) {
+                return path;
+            }
 
-    initializeSpatialShader() {
-        const spatialVertex = `#version 300 es
-            precision highp float;
-        
-            // Built-in attributes
-            in vec3 a_position;
-            in vec3 a_normal;
-            in vec2 a_texcoord;
-        
-            // Built-in uniforms
-            uniform mat4 u_worldMatrix;
-            uniform mat4 u_viewMatrix;
-            uniform mat4 u_projectionMatrix;
-            uniform mat4 u_normalMatrix;
-        
-            // Varyings for fragment shader
-            out vec3 v_normal;
-            out vec3 v_worldPos;
-            out vec2 v_texcoord;
-        
-            // User vertex modifications
-            vec3 vertex(vec3 vertex, vec3 normal, vec2 uv) {
-                return vertex;
-            }
-        
-            void main() {
-                // Start with original values
-                vec3 vertexPos = vertex(a_position, a_normal, a_texcoord);
-                
-                // Transform vertex to world space
-                vec4 worldPosition = u_worldMatrix * vec4(vertexPos, 1.0);
-                v_worldPos = worldPosition.xyz;
-                
-                // Transform normal to world space
-                v_normal = normalize((u_normalMatrix * vec4(a_normal, 0.0)).xyz);
-                
-                // Pass texture coordinates
-                v_texcoord = a_texcoord;
-                
-                // Final position
-                gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
-            }`;
+            console.log('Loading shader source from', path);
 
-        const spatialFragment = `#version 300 es
-            precision highp float;
-        
-            // Light type enum
-            const int LIGHT_POINT = 0;
-            const int LIGHT_DIRECTIONAL = 1;
-            const int LIGHT_AMBIENT = 2;
-        
-            // Generic light structure
-            struct Light {
-                int type;
-                vec3 position;    // Used by point lights
-                vec3 direction;   // Used by directional lights
-                vec3 color;
-                float intensity;
-                float range;      // Used by point lights
-            };
-        
-            // Inputs from vertex shader
-            in vec3 v_normal;
-            in vec3 v_worldPos;
-            in vec2 v_texcoord;
-        
-            // Material uniforms
-            uniform vec3 u_baseColor;
-            uniform float u_metallic;
-            uniform float u_roughness;
-            uniform sampler2D u_mainTexture;
-            uniform bool u_useTexture;
-            uniform vec3 u_cameraPosition;
-        
-            // Light uniforms
-            uniform Light u_lights[8];  // Increased size to handle all types
-            uniform int u_numLights;
-            
-            // Time uniform
-            uniform float u_time;
-        
-            // Output color
-            out vec4 fragColor;
-        
-            // Forward declarations of user-defined functions
-            vec3 light(Light light);
-            vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv);
-        
-            void main() {
-                vec3 baseColor = u_useTexture ? texture(u_mainTexture, v_texcoord).rgb : u_baseColor;
-                
-                // Get color from fragment function
-                fragColor = fragment(baseColor, normalize(v_normal), v_texcoord);
+            // Load from file
+            const response = await fetch(path);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        
-            // Default fragment implementation
-            vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv) {
-                vec3 lightContrib = vec3(0.0);
-                vec3 ambient = vec3(0.0);
-                
-                // Accumulate contribution from each light
-                for(int i = 0; i < u_numLights; i++) {
-                    if(u_lights[i].type == LIGHT_AMBIENT) {
-                        ambient += u_lights[i].color * u_lights[i].intensity;
-                    } else {
-                        lightContrib += light(u_lights[i]);
-                    }
-                }
-                
-                return vec4(baseColor * (lightContrib + ambient), 1.0);
-            }
-        
-            // Default light implementation
-            vec3 light(Light light) {
-                return vec3(0.0);
-            }`;
+            return await response.text();
+        } catch (error) {
+            console.error(`Error loading shader source from ${path}:`, error);
+            throw error;
+        }
+    }
+
+
+    async initializeSpatialShader() {
+        const spatialVertex = await this.getShaderSource('./assets/shaders/CORE_SPATIAL_VERTEX.glsl');
+        const spatialFragment = await this.getShaderSource('./assets/shaders/CORE_SPATIAL_FRAGMENT.glsl');
 
         this.createProgram('spatial', spatialVertex, spatialFragment);
         this.setDefaultProgram('spatial');
@@ -227,20 +135,7 @@ class ShaderManager {
 
     async loadShader(name, path) {
         try {
-            let shaderCode;
-
-            // If it's already a string (imported shader), use it directly
-            if (typeof path === 'string' && path.includes('\n')) {
-                shaderCode = path;
-            } else {
-                // Otherwise, fetch it
-                const response = await fetch(path);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                shaderCode = await response.text();
-            }
-
+            const shaderCode = await this.getShaderSource(path);
             return this.createCustomShader(name, { shaderCode });
         } catch (error) {
             console.error(`Error loading shader from ${path}:`, error);
