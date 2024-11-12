@@ -1,4 +1,4 @@
-import shaderManager from '../shader_manager.js';
+import shaderManager from "../shader_manager.js";
 
 class Material3D {
     constructor(name = "Material3D") {
@@ -20,20 +20,14 @@ class Material3D {
 
         // Custom uniforms storage
         this._uniforms = new Map();
+
+        // Pass system
+        this._passes = [];
+        this._activePass = 0;
     }
 
+    // Uniform methods
     setUniform(name, value) {
-        if (!this._shaderProgram) {
-            console.warn(`Attempting to set uniform '${name}' but no shader is assigned to material '${this.name}'`);
-            return this;
-        }
-
-        // Check if uniform exists in shader
-        if (!this._shaderProgram.uniforms.get(name)) {
-            console.warn(`Uniform '${name}' not found in shader for material '${this.name}'`);
-            return this;
-        }
-
         this._uniforms.set(name, value);
         return this;
     }
@@ -46,7 +40,45 @@ class Material3D {
         return this._uniforms.has(name);
     }
 
+    // Pass management
+    addPass(shaderPath) {
+        this._passes.push({
+            shaderPath,
+            program: null,
+            uniforms: new Map()
+        });
+        return this._passes.length - 1; // Return pass index
+    }
 
+    getPass(index) {
+        return this._passes[index];
+    }
+
+    async initializePasses() {
+        for (const pass of this._passes) {
+            if (!pass.program) {
+                const shaderName = `${this.name}_${Date.now()}_pass${this._passes.indexOf(pass)}`;
+                pass.program = await shaderManager.loadShader(shaderName, pass.shaderPath);
+            }
+        }
+    }
+
+    setPassUniform(passIndex, name, value) {
+        const pass = this._passes[passIndex];
+        if (pass) {
+            pass.uniforms.set(name, value);
+        }
+        return this;
+    }
+
+    getActiveProgram() {
+        if (this._passes.length > 0) {
+            return this._passes[this._activePass]?.program;
+        }
+        return this._shaderProgram;
+    }
+
+    // Shader management
     async setShader(shaderPath) {
         const shaderName = `${this.name}_${Date.now()}`;
         this._shaderProgram = await shaderManager.loadShader(shaderName, shaderPath);
@@ -57,6 +89,7 @@ class Material3D {
         return this._shaderProgram;
     }
 
+    // Texture management
     setTexture(type, image) {
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -87,8 +120,9 @@ class Material3D {
         return this;
     }
 
+    // Cleanup
     destroy() {
-        // Clean up all textures
+        // Clean up textures
         [this.albedoMap, this.normalMap, this.roughnessMap, this.metallicMap]
             .filter(texture => texture !== null)
             .forEach(texture => gl.deleteTexture(texture));
@@ -97,6 +131,15 @@ class Material3D {
         this.normalMap = null;
         this.roughnessMap = null;
         this.metallicMap = null;
+
+        // Clear uniforms
+        this._uniforms.clear();
+
+        // Clear passes
+        this._passes.forEach(pass => {
+            pass.uniforms.clear();
+        });
+        this._passes = [];
     }
 }
 

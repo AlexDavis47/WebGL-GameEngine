@@ -16,7 +16,7 @@ class Model3D extends Node3D {
         this._useTextures = true;
         this._basePath = '';
 
-        // Create a default material
+        // Create default material
         this._material = new Material3D(this.name + "_Material");
     }
 
@@ -63,23 +63,12 @@ class Model3D extends Node3D {
             const mtlText = await mtlResponse.text();
             const materials = await MTLLoader.parse(mtlText, this._basePath);
 
-            // Debug: log all materials
-            console.log('Loaded materials:', materials);
-
             // Apply the first material found
             for (const material of materials.values()) {
-                console.log('Processing material:', material.name);
-                console.log('Material properties:', {
-                    diffuseMap: material.diffuseMap,
-                    diffuseColor: material.diffuseColor
-                });
-
                 if (material.diffuseMap) {
-                    console.log('Setting diffuse map to albedo');
                     this._material.setTexture('albedo', material.diffuseMap);
                 }
                 if (material.diffuseColor) {
-                    console.log('Setting diffuse color:', material.diffuseColor);
                     this._material.baseColor = material.diffuseColor;
                 }
                 break; // Just use the first material for now
@@ -146,24 +135,62 @@ class Model3D extends Node3D {
         await super.ready();
     }
 
+    // In Model3D.js render() method
     render() {
         if (!this._vao || !this.enabled) return;
 
-        // Get the shader program from material or default
-        const program = this._material.getShaderProgram() || shaderManager.getDefaultProgram();
-
-        gl.useProgram(program.program);
-
-        // Get scene from node hierarchy
         const scene = this.getRootNode();
 
-        // Set all uniforms
-        shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+        if (this._material._passes.length > 0) {
+            // Execute each pass
+            for (let i = 0; i < this._material._passes.length; i++) {
+                // Set the current pass
+                this._material._activePass = i;
 
-        // Bind VAO and draw
-        gl.bindVertexArray(this._vao);
-        gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
-        gl.bindVertexArray(null);
+                // Check if this is the final pass
+                const isLastPass = i === this._material._passes.length - 1;
+
+                if (isLastPass) {
+                    // Final pass renders to screen
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                } else {
+                    // Begin the pass using ShaderManager for intermediate passes
+                    if (!shaderManager.beginPass(i, this._material)) {
+                        continue;
+                    }
+                }
+
+                // Get the program for this pass
+                const program = this._material._passes[i].program;
+                gl.useProgram(program.program);
+
+                // Set all uniforms for this pass
+                shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+
+                // Draw
+                gl.bindVertexArray(this._vao);
+                gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+                gl.bindVertexArray(null);
+
+                // Only end the pass if it's not the final pass
+                if (!isLastPass) {
+                    shaderManager.endPass();
+                }
+            }
+
+            // Reset active pass
+            this._material._activePass = 0;
+        } else {
+            // Original single-pass rendering
+            const program = this._material.getShaderProgram() || shaderManager.getDefaultProgram();
+            gl.useProgram(program.program);
+
+            shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+
+            gl.bindVertexArray(this._vao);
+            gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+            gl.bindVertexArray(null);
+        }
 
         // Render children
         super.render();
@@ -171,8 +198,8 @@ class Model3D extends Node3D {
 
 
 
+
     onDestroy() {
-        // Cleanup GL resources
         if (this._vao) {
             gl.deleteVertexArray(this._vao);
             this._vao = null;
@@ -183,16 +210,11 @@ class Model3D extends Node3D {
             this._indexBuffer = null;
         }
 
-        // Cleanup material
         if (this._material) {
             this._material.destroy();
         }
 
         super.onDestroy();
-    }
-
-    get material() {
-        return this._material;
     }
 
     get material() {
@@ -213,6 +235,17 @@ class Model3D extends Node3D {
 
     async setShaderFromFile(shaderPath) {
         await this._material.setShader(shaderPath);
+        return this;
+    }
+
+    async addShaderPass(shaderPath) {
+        const passIndex = this._material.addPass(shaderPath);
+        await this._material.initializePasses();
+        return passIndex;
+    }
+
+    setPassUniform(passIndex, name, value) {
+        this._material.setPassUniform(passIndex, name, value);
         return this;
     }
 }
