@@ -226,19 +226,17 @@ class ShaderManager {
         });
     }
 
-
     setMaterialUniforms(program, material) {
         const { uniforms } = program;
-
 
         gl.uniform3fv(uniforms.get('u_baseColor'), material.baseColor);
         gl.uniform1f(uniforms.get('u_metallic'), material.metallic);
         gl.uniform1f(uniforms.get('u_roughness'), material.roughness);
-        gl.uniform1i(uniforms.get('u_useTexture'), material.texture ? 1 : 0);
+        gl.uniform1i(uniforms.get('u_useTexture'), material.albedoMap ? 1 : 0);
 
-        if (material.texture) {
+        if (material.albedoMap) {
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, material.texture);
+            gl.bindTexture(gl.TEXTURE_2D, material.albedoMap);
             gl.uniform1i(uniforms.get('u_mainTexture'), 0);
         }
     }
