@@ -2,6 +2,7 @@ import Node3D from './node3d.js';
 import OBJLoader from "../util/obj_loader.js";
 import MTLLoader from "../util/mtl_loader.js";
 import shaderManager from '../shader_manager.js';
+import Material3D from "./material_3d.js";
 
 class Model3D extends Node3D {
     constructor() {
@@ -10,22 +11,15 @@ class Model3D extends Node3D {
         this._vao = null;
         this._indexBuffer = null;
         this._indexCount = 0;
-        this._shaderProgram = null;
 
         // Loading configuration
         this._useTextures = true;
         this._basePath = '';
 
-        // Material properties
-        this._material = {
-            baseColor: [0.7, 0.7, 0.7],
-            metallic: 0.0,
-            roughness: 0.5,
-            texture: null,
-        };
-
-        this._textures = new Map();
+        // Create default material
+        this._material = new Material3D(this.name + "_Material");
     }
+
 
     async loadModel(objPath, options = {}) {
         // Set up configuration
@@ -72,10 +66,10 @@ class Model3D extends Node3D {
             // Apply the first material found
             for (const material of materials.values()) {
                 if (material.diffuseMap) {
-                    this.setTexture(material.diffuseMap, material.name);
+                    this._material.setTexture('albedo', material.diffuseMap);
                 }
                 if (material.diffuseColor) {
-                    this.setBaseColor(...material.diffuseColor);
+                    this._material.baseColor = material.diffuseColor;
                 }
                 break; // Just use the first material for now
             }
@@ -84,6 +78,7 @@ class Model3D extends Node3D {
             throw error;
         }
     }
+
 
     setGeometry(vertices, indices, normals, uvs) {
         // Create and bind VAO
@@ -130,62 +125,81 @@ class Model3D extends Node3D {
     }
 
     setTexture(image, materialName = 'default') {
-        // Create and setup texture
-        const texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        // Upload the image into the texture
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-
-        // Setup texture parameters
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-        // Store the texture
-        this._textures.set(materialName, texture);
-
-        // Set as current material texture
-        this._material.texture = texture;
-
+        this._material.setTexture('albedo', image);
         return this;
     }
+
 
     async ready() {
         // Any model-specific initialization
         await super.ready();
     }
 
+    // In Model3D.js render() method
     render() {
         if (!this._vao || !this.enabled) return;
 
-        // Get the shader program (default if none set)
-        const program = this._shaderProgram || shaderManager.getDefaultProgram();
-
-        gl.useProgram(program.program);
-
-        // Get scene from node hierarchy
         const scene = this.getRootNode();
 
-        // Set all uniforms
-        shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+        if (this._material._passes.length > 0) {
+            // Execute each pass
+            for (let i = 0; i < this._material._passes.length; i++) {
+                // Set the current pass
+                this._material._activePass = i;
 
-        // Bind VAO and draw
-        gl.bindVertexArray(this._vao);
-        gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
-        gl.bindVertexArray(null);
+                // Check if this is the final pass
+                const isLastPass = i === this._material._passes.length - 1;
+
+                if (isLastPass) {
+                    // Final pass renders to screen
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                } else {
+                    // Begin the pass using ShaderManager for intermediate passes
+                    if (!shaderManager.beginPass(i, this._material)) {
+                        continue;
+                    }
+                }
+
+                // Get the program for this pass
+                const program = this._material._passes[i].program;
+                gl.useProgram(program.program);
+
+                // Set all uniforms for this pass
+                shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+
+                // Draw
+                gl.bindVertexArray(this._vao);
+                gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+                gl.bindVertexArray(null);
+
+                // Only end the pass if it's not the final pass
+                if (!isLastPass) {
+                    shaderManager.endPass();
+                }
+            }
+
+            // Reset active pass
+            this._material._activePass = 0;
+        } else {
+            // Original single-pass rendering
+            const program = this._material.getShaderProgram() || shaderManager.getDefaultProgram();
+            gl.useProgram(program.program);
+
+            shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+
+            gl.bindVertexArray(this._vao);
+            gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+            gl.bindVertexArray(null);
+        }
 
         // Render children
         super.render();
     }
 
 
+
+
     onDestroy() {
-
-
-        // Cleanup GL resources
         if (this._vao) {
             gl.deleteVertexArray(this._vao);
             this._vao = null;
@@ -196,11 +210,9 @@ class Model3D extends Node3D {
             this._indexBuffer = null;
         }
 
-        // Cleanup textures
-        for (const texture of this._textures.values()) {
-            gl.deleteTexture(texture);
+        if (this._material) {
+            this._material.destroy();
         }
-        this._textures.clear();
 
         super.onDestroy();
     }
@@ -209,15 +221,31 @@ class Model3D extends Node3D {
         return this._material;
     }
 
+    set material(newMaterial) {
+        if (this._material) {
+            this._material.destroy();
+        }
+        this._material = newMaterial;
+    }
+
     setBaseColor(r, g, b) {
         this._material.baseColor = [r, g, b];
         return this;
     }
 
-
     async setShaderFromFile(shaderPath) {
-        const shaderName = `${this.name}_${Date.now()}`;
-        this._shaderProgram = await shaderManager.loadShader(shaderName, shaderPath);
+        await this._material.setShader(shaderPath);
+        return this;
+    }
+
+    async addShaderPass(shaderPath) {
+        const passIndex = this._material.addPass(shaderPath);
+        await this._material.initializePasses();
+        return passIndex;
+    }
+
+    setPassUniform(passIndex, name, value) {
+        this._material.setPassUniform(passIndex, name, value);
         return this;
     }
 }

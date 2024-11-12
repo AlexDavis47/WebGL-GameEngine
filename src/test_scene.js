@@ -81,7 +81,6 @@ class TestScene extends Scene {
             island.addChild(islandVisual);
         }
 
-
         // Initialize the scene hierarchy
         await super.init();
     }
@@ -97,7 +96,8 @@ class TestScene extends Scene {
 
         const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
-        await boxVisual.setShaderFromFile('./assets/shaders/toon.glsl');
+        await boxVisual.addShaderPass('./assets/shaders/phong.glsl');
+        await boxVisual.addShaderPass('./assets/shaders/red.glsl');
         testBox.addChild(boxVisual);
 
         const audioPlayer = new AudioPlayer3D();

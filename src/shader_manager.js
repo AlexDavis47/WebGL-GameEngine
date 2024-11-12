@@ -12,6 +12,15 @@ class ShaderManager {
         this.defaultProgram = null;
         this.initialized = false;
 
+        // New: Framebuffer management for multi-pass rendering
+        this.framebuffers = new Map();
+        this.currentFramebuffer = null;
+
+        this.pingPongBuffers = {
+            read: null,
+            write: null
+        };
+
         return this;
     }
 
@@ -23,130 +32,34 @@ class ShaderManager {
     }
 
 
-    init() {
+    async init() {
         if (this.initialized) return;
-
-        this.initializeSpatialShader();
+        await this.initializeSpatialShader();
         this.initialized = true;
     }
 
+    async getShaderSource(path) {
+        try {
+            if (typeof path === 'string' && path.includes('\n')) {
+                return path;
+            }
 
-    initializeSpatialShader() {
-        const spatialVertex = `#version 300 es
-            precision highp float;
-        
-            // Built-in attributes
-            in vec3 a_position;
-            in vec3 a_normal;
-            in vec2 a_texcoord;
-        
-            // Built-in uniforms
-            uniform mat4 u_worldMatrix;
-            uniform mat4 u_viewMatrix;
-            uniform mat4 u_projectionMatrix;
-            uniform mat4 u_normalMatrix;
-        
-            // Varyings for fragment shader
-            out vec3 v_normal;
-            out vec3 v_worldPos;
-            out vec2 v_texcoord;
-        
-            // User vertex modifications
-            vec3 vertex(vec3 vertex, vec3 normal, vec2 uv) {
-                return vertex;
+            // Note: glslify processing is handled by Vite plugin
+            const response = await fetch(path);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        
-            void main() {
-                // Start with original values
-                vec3 vertexPos = vertex(a_position, a_normal, a_texcoord);
-                
-                // Transform vertex to world space
-                vec4 worldPosition = u_worldMatrix * vec4(vertexPos, 1.0);
-                v_worldPos = worldPosition.xyz;
-                
-                // Transform normal to world space
-                v_normal = normalize((u_normalMatrix * vec4(a_normal, 0.0)).xyz);
-                
-                // Pass texture coordinates
-                v_texcoord = a_texcoord;
-                
-                // Final position
-                gl_Position = u_projectionMatrix * u_viewMatrix * worldPosition;
-            }`;
+            return await response.text();
+        } catch (error) {
+            console.error(`Error loading shader source from ${path}:`, error);
+            throw error;
+        }
+    }
 
-        const spatialFragment = `#version 300 es
-            precision highp float;
-        
-            // Light type enum
-            const int LIGHT_POINT = 0;
-            const int LIGHT_DIRECTIONAL = 1;
-            const int LIGHT_AMBIENT = 2;
-        
-            // Generic light structure
-            struct Light {
-                int type;
-                vec3 position;    // Used by point lights
-                vec3 direction;   // Used by directional lights
-                vec3 color;
-                float intensity;
-                float range;      // Used by point lights
-            };
-        
-            // Inputs from vertex shader
-            in vec3 v_normal;
-            in vec3 v_worldPos;
-            in vec2 v_texcoord;
-        
-            // Material uniforms
-            uniform vec3 u_baseColor;
-            uniform float u_metallic;
-            uniform float u_roughness;
-            uniform sampler2D u_mainTexture;
-            uniform bool u_useTexture;
-            uniform vec3 u_cameraPosition;
-        
-            // Light uniforms
-            uniform Light u_lights[8];  // Increased size to handle all types
-            uniform int u_numLights;
-            
-            // Time uniform
-            uniform float u_time;
-        
-            // Output color
-            out vec4 fragColor;
-        
-            // Forward declarations of user-defined functions
-            vec3 light(Light light);
-            vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv);
-        
-            void main() {
-                vec3 baseColor = u_useTexture ? texture(u_mainTexture, v_texcoord).rgb : u_baseColor;
-                
-                // Get color from fragment function
-                fragColor = fragment(baseColor, normalize(v_normal), v_texcoord);
-            }
-        
-            // Default fragment implementation
-            vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv) {
-                vec3 lightContrib = vec3(0.0);
-                vec3 ambient = vec3(0.0);
-                
-                // Accumulate contribution from each light
-                for(int i = 0; i < u_numLights; i++) {
-                    if(u_lights[i].type == LIGHT_AMBIENT) {
-                        ambient += u_lights[i].color * u_lights[i].intensity;
-                    } else {
-                        lightContrib += light(u_lights[i]);
-                    }
-                }
-                
-                return vec4(baseColor * (lightContrib + ambient), 1.0);
-            }
-        
-            // Default light implementation
-            vec3 light(Light light) {
-                return vec3(0.0);
-            }`;
+
+    async initializeSpatialShader() {
+        const spatialVertex = await this.getShaderSource('./assets/shaders/CORE_SPATIAL_VERTEX.glsl');
+        const spatialFragment = await this.getShaderSource('./assets/shaders/CORE_SPATIAL_FRAGMENT.glsl');
 
         this.createProgram('spatial', spatialVertex, spatialFragment);
         this.setDefaultProgram('spatial');
@@ -209,17 +122,24 @@ class ShaderManager {
         return programInfo;
     }
 
-    createCustomShader(name, { shaderCode }) {
+    // In ShaderManager.js
+
+    createCustomShader(name, {shaderCode}) {
         // Get the base spatial shader sources
         const baseProgram = this.shaderPrograms.get('spatial');
         let vertexShader = baseProgram.vertexSource;
         let fragmentShader = baseProgram.fragmentSource;
 
+        // Update the function signatures in the replacement
+        const updatedShaderCode = shaderCode.replace(
+            /vec4\s+fragment\s*\(\s*vec3\s+baseColor\s*,\s*vec3\s+normal\s*,\s*vec2\s+uv\s*\)/g,
+            'vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass)'
+        );
+
         // Replace the default fragment and light functions with the custom ones
-        // First, remove the default implementations
         fragmentShader = fragmentShader.replace(
             /\/\/ Default fragment implementation[\s\S]*?}[\s\S]*?\/\/ Default light implementation[\s\S]*?}/,
-            shaderCode
+            updatedShaderCode
         );
 
         return this.createProgram(name, vertexShader, fragmentShader);
@@ -227,21 +147,8 @@ class ShaderManager {
 
     async loadShader(name, path) {
         try {
-            let shaderCode;
-
-            // If it's already a string (imported shader), use it directly
-            if (typeof path === 'string' && path.includes('\n')) {
-                shaderCode = path;
-            } else {
-                // Otherwise, fetch it
-                const response = await fetch(path);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                shaderCode = await response.text();
-            }
-
-            return this.createCustomShader(name, { shaderCode });
+            const shaderCode = await this.getShaderSource(path);
+            return this.createCustomShader(name, {shaderCode});
         } catch (error) {
             console.error(`Error loading shader from ${path}:`, error);
             throw error;
@@ -261,19 +168,112 @@ class ShaderManager {
         return this.defaultProgram;
     }
 
+    // In ShaderManager.js
+    beginPass(passIndex, material) {
+        const pass = material._passes[passIndex];
+        if (!pass) return false;
+
+        // Skip framebuffer for final pass
+        const isLastPass = passIndex === material._passes.length - 1;
+        if (isLastPass) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            return true;
+        }
+
+        // Create ping-pong buffers if they don't exist or if size changed
+        if (!this.pingPongBuffers.read ||
+            this.pingPongBuffers.read.width !== gl.canvas.width ||
+            this.pingPongBuffers.read.height !== gl.canvas.height) {
+
+            // Clean up existing buffers if they exist
+            if (this.pingPongBuffers.read) {
+                this.cleanupFramebuffer(this.pingPongBuffers.read);
+            }
+            if (this.pingPongBuffers.write) {
+                this.cleanupFramebuffer(this.pingPongBuffers.write);
+            }
+
+            // Create new buffers
+            this.pingPongBuffers.read = this.createFramebuffer(gl.canvas.width, gl.canvas.height);
+            this.pingPongBuffers.write = this.createFramebuffer(gl.canvas.width, gl.canvas.height);
+        }
+
+        // Bind write buffer for rendering
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongBuffers.write.framebuffer);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        return true;
+    }
+
+    cleanupFramebuffer(fb) {
+        if (fb.framebuffer) gl.deleteFramebuffer(fb.framebuffer);
+        if (fb.texture) gl.deleteTexture(fb.texture);
+        if (fb.depthBuffer) gl.deleteRenderbuffer(fb.depthBuffer);
+    }
+
+
+    createFramebuffer(width, height) {
+        const framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+        const depthBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+        return {
+            framebuffer,
+            texture,
+            depthBuffer,
+            width,
+            height
+        };
+    }
+
+    // New: End a render pass
+    endPass() {
+        // Swap buffers
+        const temp = this.pingPongBuffers.read;
+        this.pingPongBuffers.read = this.pingPongBuffers.write;
+        this.pingPongBuffers.write = temp;
+    }
+
+
     setUniforms(program, camera, model, scene) {
+        // Get the material
+        const material = model.material;
+
         // Basic transforms
         this.setTransformUniforms(program, camera, model);
+
         // Lighting
         this.setLightUniforms(program, scene);
-        // Material
-        this.setMaterialUniforms(program, model.material);
-        // Custom uniforms
+
+        // Material properties
+        this.setMaterialUniforms(program, material);
+
+        // Set material's custom uniforms
+        this.setCustomMaterialUniforms(program, material);
+
+        // Custom uniforms (like time)
         this.setCustomUniforms(program);
     }
 
+
     setTransformUniforms(program, camera, model) {
-        const { uniforms } = program;
+        const {uniforms} = program;
 
 
         // Use proper matrix getters from new Node3D system
@@ -293,7 +293,7 @@ class ShaderManager {
     }
 
     setLightUniforms(program, scene) {
-        const { uniforms } = program;
+        const {uniforms} = program;
 
 
         // Get all lights in the scene
@@ -331,25 +331,98 @@ class ShaderManager {
         });
     }
 
-
+    // In ShaderManager.js
     setMaterialUniforms(program, material) {
-        const { uniforms } = program;
+        const {uniforms} = program;
+        const currentPass = material._activePass;
 
+        // Handle previous pass texture if we're not in the first pass
+        if (currentPass > 0 && this.pingPongBuffers.read) {
+            // Bind read buffer's texture
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, this.pingPongBuffers.read.texture);
 
+            if (uniforms.get('u_previousPass') !== null) {
+                gl.uniform1i(uniforms.get('u_previousPass'), 0);
+            }
+            if (uniforms.get('u_hasPreviousPass') !== null) {
+                gl.uniform1i(uniforms.get('u_hasPreviousPass'), 1);
+            }
+        } else {
+            if (uniforms.get('u_hasPreviousPass') !== null) {
+                gl.uniform1i(uniforms.get('u_hasPreviousPass'), 0);
+            }
+        }
+
+        // Regular material uniforms
         gl.uniform3fv(uniforms.get('u_baseColor'), material.baseColor);
         gl.uniform1f(uniforms.get('u_metallic'), material.metallic);
         gl.uniform1f(uniforms.get('u_roughness'), material.roughness);
-        gl.uniform1i(uniforms.get('u_useTexture'), material.texture ? 1 : 0);
 
-        if (material.texture) {
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, material.texture);
-            gl.uniform1i(uniforms.get('u_mainTexture'), 0);
+        if (material.albedoMap) {
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, material.albedoMap);
+            gl.uniform1i(uniforms.get('u_mainTexture'), 1);
+            gl.uniform1i(uniforms.get('u_useTexture'), 1);
+        } else {
+            gl.uniform1i(uniforms.get('u_useTexture'), 0);
         }
     }
 
+
+    setCustomMaterialUniforms(program, material) {
+        const {uniforms} = program;
+
+        // Set any custom uniforms from the material
+        for (const [name, value] of material._uniforms) {
+            const location = uniforms.get(name);
+            if (location) {
+                this.setUniformValue(location, value);
+            }
+        }
+
+        // Set pass-specific uniforms if we're in a pass
+        const currentPass = material._passes[material._activePass];
+        if (currentPass) {
+            for (const [name, value] of currentPass.uniforms) {
+                const location = uniforms.get(name);
+                if (location) {
+                    this.setUniformValue(location, value);
+                }
+            }
+        }
+    }
+
+
+    setUniformValue(location, value) {
+        if (Array.isArray(value)) {
+            switch (value.length) {
+                case 2:
+                    gl.uniform2fv(location, value);
+                    break;
+                case 3:
+                    gl.uniform3fv(location, value);
+                    break;
+                case 4:
+                    gl.uniform4fv(location, value);
+                    break;
+                case 9:
+                    gl.uniformMatrix3fv(location, false, value);
+                    break;
+                case 16:
+                    gl.uniformMatrix4fv(location, false, value);
+                    break;
+            }
+        } else if (typeof value === 'number') {
+            gl.uniform1f(location, value);
+        } else if (typeof value === 'boolean') {
+            gl.uniform1i(location, value ? 1 : 0);
+        }
+    }
+
+
     setCustomUniforms(program) {
-        const { uniforms } = program;
+        const {uniforms} = program;
 
 
         if (uniforms.get('u_time')) {
@@ -359,5 +432,5 @@ class ShaderManager {
 
 }
 
-const instance = new ShaderManager();
-export default instance;
+const shaderManager = new ShaderManager();
+export default shaderManager;
