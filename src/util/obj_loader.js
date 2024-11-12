@@ -5,22 +5,30 @@ class OBJLoader {
         const normals = [];
         const indices = [];
 
-        // Temp arrays to store the raw data from file
         const tempVertices = [];
         const tempTexCoords = [];
         const tempNormals = [];
 
-        // Map to store unique vertex combinations
         const vertexMap = new Map();
         let currentIndex = 0;
+        let hasTexCoords = false;
 
         const lines = objText.split('\n');
+
+        // First pass: collect data and determine if we have texture coordinates
+        for (const line of lines) {
+            const tokens = line.trim().split(/\s+/);
+            if (tokens[0] === 'vt') {
+                hasTexCoords = true;
+                break;
+            }
+        }
 
         for (const line of lines) {
             const tokens = line.trim().split(/\s+/);
 
             switch(tokens[0]) {
-                case 'v':  // Vertex position
+                case 'v':
                     tempVertices.push([
                         parseFloat(tokens[1]),
                         parseFloat(tokens[2]),
@@ -28,14 +36,15 @@ class OBJLoader {
                     ]);
                     break;
 
-                case 'vt':  // Texture coordinate
+                case 'vt':
+                    // Ensure Y coordinate is properly flipped (1 - v)
                     tempTexCoords.push([
                         parseFloat(tokens[1]),
-                        tokens.length > 2 ? parseFloat(tokens[2]) : 0.0  // Some files might only have U coordinate
+                        1.0 - (tokens.length > 2 ? parseFloat(tokens[2]) : 0.0)
                     ]);
                     break;
 
-                case 'vn':  // Normal
+                case 'vn':
                     tempNormals.push([
                         parseFloat(tokens[1]),
                         parseFloat(tokens[2]),
@@ -43,57 +52,62 @@ class OBJLoader {
                     ]);
                     break;
 
-                case 'f':  // Face
-                    // Process face vertices (handling both triangles and quads)
+                case 'f':
                     const faceVertices = [];
 
-                    // Extract vertex data for each corner of the face
+                    // Handle different face formats: v, v/t, v//n, v/t/n
                     for (let i = 1; i < tokens.length; i++) {
                         const vertexData = tokens[i].split('/');
-                        faceVertices.push({
-                            position: parseInt(vertexData[0]) - 1,
-                            texcoord: vertexData[1] ? parseInt(vertexData[1]) - 1 : -1,
-                            normal: vertexData[2] ? parseInt(vertexData[2]) - 1 : -1
-                        });
+                        const position = parseInt(vertexData[0]) - 1;
+                        const texcoord = vertexData[1] ? parseInt(vertexData[1]) - 1 : -1;
+                        const normal = vertexData[2] ? parseInt(vertexData[2]) - 1 : -1;
+
+                        faceVertices.push({ position, texcoord, normal });
                     }
 
-                    // Triangulate if necessary (handle quads)
+                    // Triangulate faces (handle both triangles and quads)
                     for (let i = 1; i < faceVertices.length - 1; i++) {
                         const vertices = [faceVertices[0], faceVertices[i], faceVertices[i + 1]];
 
-                        // Process each vertex of the triangle
                         for (const vertex of vertices) {
-                            // Create a unique key for this vertex combination
+                            // Create a unique key that includes all vertex attributes
                             const key = `${vertex.position}/${vertex.texcoord}/${vertex.normal}`;
 
-                            // Check if we've seen this vertex combination before
                             if (!vertexMap.has(key)) {
-                                // Add the vertex data to the final arrays
+                                // Add position
                                 const pos = tempVertices[vertex.position];
                                 positions.push(...pos);
 
+                                // Handle texture coordinates
                                 if (vertex.texcoord !== -1 && vertex.texcoord < tempTexCoords.length) {
                                     const tex = tempTexCoords[vertex.texcoord];
                                     texcoords.push(...tex);
+                                } else if (hasTexCoords) {
+                                    // If model has some UV coords but this vertex doesn't,
+                                    // generate planar mapping based on position
+                                    const pos = tempVertices[vertex.position];
+                                    texcoords.push(
+                                        (pos[0] + 1) * 0.5,
+                                        (pos[2] + 1) * 0.5
+                                    );
                                 } else {
-                                    // Add default UV coordinates if none provided
+                                    // Model has no UV coords at all
                                     texcoords.push(0.0, 0.0);
                                 }
 
+                                // Handle normals
                                 if (vertex.normal !== -1 && vertex.normal < tempNormals.length) {
                                     const norm = tempNormals[vertex.normal];
                                     normals.push(...norm);
                                 } else {
-                                    // Add default normal if none provided
+                                    // Calculate flat normal if none provided
                                     normals.push(0.0, 1.0, 0.0);
                                 }
 
-                                // Store the new index
                                 vertexMap.set(key, currentIndex);
                                 indices.push(currentIndex);
                                 currentIndex++;
                             } else {
-                                // Reuse the existing vertex
                                 indices.push(vertexMap.get(key));
                             }
                         }
@@ -102,12 +116,12 @@ class OBJLoader {
             }
         }
 
-
         return {
-            positions: positions,
-            texcoords: texcoords,
-            normals: normals,
-            indices: indices
+            positions,
+            texcoords,
+            normals,
+            indices,
+            hasTexCoords
         };
     }
 }
