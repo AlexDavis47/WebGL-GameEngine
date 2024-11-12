@@ -165,11 +165,9 @@ class Player extends KinematicBody3D {
     }
 
     handleFootstep(deltaTime) {
-        const velocity = this.getVelocity();
-
         this.isMoving = (vec3.length(this.moveDir) > 0.1);
 
-        if (this.isMoving) {
+        if (this.isMoving && this.isOnFloor()) {
             this.footstepTimer += deltaTime;
             if (this.footstepTimer >= this.footstepInterval) {
                 this.footstep.play();

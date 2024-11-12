@@ -15,8 +15,8 @@ class KinematicBody3D extends PhysicsBody3D {
         // Character controller configuration
         this._characterControllerParams = {
             offset: 0.01,
-            maxSlopeClimbAngle: Math.PI / 4,    // 45 degrees
-            minSlopeSlideAngle: Math.PI / 3,    // 60 degrees
+            maxSlopeClimbAngle: Math.PI / 4,
+            minSlopeSlideAngle: Math.PI / 3,
             autoStepMaxHeight: 0.5,
             autoStepMinWidth: 0.2,
             enableDynamicBodies: true,
