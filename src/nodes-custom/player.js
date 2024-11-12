@@ -4,6 +4,7 @@ import Gun from './gun.js';
 import { vec3 } from 'gl-matrix';
 import inputManager, { Keys } from "../input_manager.js";
 import AudioReceiver from "../nodes-core/audio_receiver.js";
+import AudioPlayer from "../nodes-core/audio_player.js";
 
 class Player extends KinematicBody3D {
     constructor() {
@@ -52,6 +53,36 @@ class Player extends KinematicBody3D {
 
         // Movement direction vector
         this._inputVector = vec3.create();
+
+        this.footstep = new AudioPlayer();
+        this.addChild(this.footstep);
+        this.footstepInterval = 600;  // Interval between footsteps in milliseconds
+        this.footstepTimer = null;    // Reference to the footstep timer
+        this.isMoving = false;
+    }
+
+    async ready(){
+        super.ready();
+        await this.footstep.loadSound('/assets/sounds/footstep.mp3', {
+
+        });
+        this.footstep.play();
+    }
+
+    startFootstepTimer() {
+        if (this.footstepTimer) return; // Avoid starting multiple timers
+
+        // Play footstep sound at regular intervals
+        this.footstepTimer = setInterval(() => {
+            this.footstep.play();
+        }, this.footstepInterval);
+    }
+
+    stopFootstepTimer() {
+        if (this.footstepTimer) {
+            clearInterval(this.footstepTimer);
+            this.footstepTimer = null;
+        }
     }
 
     handleRotation() {
@@ -110,8 +141,18 @@ class Player extends KinematicBody3D {
 
         let friction = this.isOnFloor() ? this._groundFriction : this._airFriction;
 
+        const isCurrentlyMoving = vec3.length(moveDir) > 0;
+        // Start or stop the footstep timer based on movement state
+        if (isCurrentlyMoving && !this.isMoving) {
+            this.startFootstepTimer();
+            this.isMoving = true;
+        } else if (!isCurrentlyMoving && this.isMoving) {
+            this.stopFootstepTimer();
+            this.isMoving = false;
+        }
+
         // If there is any movement input, normalize the direction vector
-        if (vec3.length(moveDir) > 0) {
+        if (isCurrentlyMoving) {
             vec3.normalize(moveDir, moveDir); // Normalize the direction vector
 
             // Get the forward and right vectors based on the player's yaw (camera orientation)
