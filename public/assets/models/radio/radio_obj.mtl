@@ -1,0 +1,29 @@
+# Blender MTL File: 'radio_blender 3.0.blend'
+# Material Count: 2
+
+newmtl radio_base_texture
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Bump radio_textures\\radio_base_texture_Normal.png
+map_Kd radio_base_texture_BaseColor.png
+
+map_Ns radio_textures\\radio_base_texture_Roughness.png
+refl radio_textures_istock\\radio_base_texture_Metallic.png
+
+newmtl radio_buttons_texture
+Ns 323.999994
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+map_Kd radio_buttons_texture_BaseColor.png

@@ -48,6 +48,22 @@ class TestScene extends Scene {
 
         this.addChild(sun);
 
+        const radio = new Model3D;
+        await radio.loadModel('./assets/models/radio/radio_obj.obj');
+        await radio.setShaderFromFile('./assets/shaders/phong.glsl');
+        radio.setScale(3, 3, 3);
+        radio.setPosition(5, 5, 3);
+
+        const radioSong = new AudioPlayer3D();
+        await radioSong.loadSound('./assets/ambience/hell.mp3', {
+            loop: true
+        });
+
+        radioSong.play();
+        radio.addChild(radioSong);
+        this.addChild(radio);
+
+
         const island = new StaticBody3D();
         await island.setCollisionFromOBJ('./assets/models/island/island.obj');
         island.setPosition(0, 0, 0);
