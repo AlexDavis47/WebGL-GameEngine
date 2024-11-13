@@ -13,6 +13,7 @@ import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 import GLTFLoader from "./util/GLTF_loader.js";
 import AmbientLight from "./nodes-core/ambient_light.js";
 import Skybox from "./nodes-core/skybox.js";
+import Radio from "./nodes-custom/radio.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -58,20 +59,11 @@ class TestScene extends Scene {
 
         this.addChild(sun);
 
-        const radio = new Model3D;
-        await radio.loadModel('./assets/models/radio/radio_obj.obj');
-        await radio.addShaderPass('./assets/shaders/texture.glsl');
-        await radio.addShaderPass('./assets/shaders/phong.glsl');
+        const radio = new Radio();
         radio.setScale(3, 3, 3);
         radio.setPosition(5, 5, 3);
-
-        const radioSong = new AudioPlayer3D();
-        await radioSong.loadSound('./assets/ambience/portalradio.mp3', {
-            loop: true
-        });
-
-        radioSong.play();
-        radio.addChild(radioSong);
+        await radio.addShaderPass('./assets/shaders/texture.glsl');
+        await radio.addShaderPass('./assets/shaders/phong.glsl');
         this.addChild(radio);
 
         const tree = new Model3D();
