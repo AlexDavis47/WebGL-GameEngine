@@ -36,13 +36,6 @@ class MTLLoader {
                             .trim();                   // Remove any whitespace
 
                         const fullPath = basePath + textureName;
-
-                        console.log(`Loading texture for ${currentMaterial.name}:`, {
-                            originalPath,
-                            textureName,
-                            fullPath
-                        });
-
                         try {
                             currentMaterial.diffuseMap = await MTLLoader.loadTexture(fullPath);
                             currentMaterial.loaded = true;

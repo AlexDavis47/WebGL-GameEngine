@@ -26,12 +26,8 @@ class PhysicsBody3D extends Node3D {
     }
 
     async init() {
-        console.log(`${this.name} init called`);
         if (this._colliderDesc) {
-            console.log("Has collider desc, initializing physics");
             await this._initPhysics();
-        } else {
-            console.log("No collider desc during init");
         }
         await super.init();
     }
@@ -100,14 +96,11 @@ class PhysicsBody3D extends Node3D {
     }
 
     setBoxShape(sx = 1, sy = 1, sz = 1) {
-        console.log("Setting box shape");
         this._colliderDesc = RAPIER.ColliderDesc.cuboid(sx/2, sy/2, sz/2);
 
         if (this.initialized) {
-            console.log("Already initialized, creating physics now");
             return this._initPhysics();
         }
-        console.log("Not yet initialized, physics will init later");
         return this;
     }
 

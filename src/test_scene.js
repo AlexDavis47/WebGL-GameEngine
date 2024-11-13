@@ -11,16 +11,17 @@ import StaticBody3D from "./nodes-core/static_body_3d.js";
 import AudioPlayer from "./nodes-core/audio_player.js";
 import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 import GLTFLoader from "./util/GLTF_loader.js";
+import AmbientLight from "./nodes-core/ambient_light.js";
 
 class TestScene extends Scene {
     constructor() {
         super();
         this.name = "TestScene";
         this._camera = null;
+        this.setAmbientLight(0.5, 0.5, 0.5);
     }
 
     async init() {
-        console.log('Initializing test scene...');
         physicsManager.setGravity(0, -9.81, 0);
 
 
@@ -31,16 +32,25 @@ class TestScene extends Scene {
         this.setActiveCamera(player._camera);
         player.setPosition(0, 5, 0);
 
-        for (let i = 0; i < 5; i++) {
-            for (let j = 0; j < 5; j++) {
-                const ocean = new Model3D();
-                await ocean.loadModel('./assets/models/ocean/ocean.obj');
-                await ocean.setShaderFromFile('./assets/shaders/water.glsl');
-                ocean.setPosition(i * 500 - (500 * 2.5), -2, j * 500 - (500 * 2.5));
-                ocean.setScale(10, 10, 10);
-                this.addChild(ocean);
-            }
-        }
+        const ocean = new Model3D();
+        await ocean.loadModel('./assets/models/ocean/ocean.obj');
+        await ocean.setShaderFromFile('./assets/shaders/water_material.glsl');
+        ocean.setScale(100, 10, 100);
+        this.addChild(ocean);
+
+
+        const ambientLight = new AmbientLight();
+        ambientLight.setIntensity(0.2);
+        this.addChild(ambientLight);
+
+        // Testing GLTF loader
+        const microphone = new Model3D();
+        await microphone.loadModel('./assets/models/microphone_glb/mic.glb');
+        await microphone.setShaderFromFile('./assets/shaders/phong.glsl');
+        microphone.setScale(0.1, 0.1, 0.1);
+        microphone.setPosition(0, 0, 0);
+        this.addChild(microphone);
+
 
         const sun = new PointLight();
         sun.setPosition(0, 1000, 1000)
@@ -83,26 +93,9 @@ class TestScene extends Scene {
 
         island.addChild(islandVisual);
 
-        for (let i = 0; i < 25; i++) {
-            // Island static body
-            const island = new StaticBody3D();
-            await island.setCollisionFromOBJ('./assets/models/island/island.obj');
-            island.setPosition(Math.random() * 200 - 100, 0, Math.random() * 200 - 100);
-            island.setRotation(0, Math.random() * Math.PI * 2, 0);
-
-            this.addChild(island);
-            // Island model
-            const islandVisual = new Model3D();
-            await islandVisual.loadModel('./assets/models/island/island.obj');
-            await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
-
-            // move the island down based on it's distance from the center
-            const distance = Math.sqrt(island.getPositionWorld()[0] ** 2 + island.getPositionWorld()[2] ** 2);
-            island.setPositionY(-distance / 20);
 
 
-            island.addChild(islandVisual);
-        }
+
 
         // Initialize the scene hierarchy
         await super.init();

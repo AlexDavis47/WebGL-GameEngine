@@ -18,7 +18,7 @@ class PointLight extends Light {
         return {
             ...baseLight,
             // Convert worldPosition to Float32Array
-            position: new Float32Array(this.worldPosition),
+            position: new Float32Array(this.getPositionWorld()),
             range: this.range
         };
     }
