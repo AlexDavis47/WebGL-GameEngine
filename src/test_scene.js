@@ -12,6 +12,7 @@ import AudioPlayer from "./nodes-core/audio_player.js";
 import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 import GLTFLoader from "./util/GLTF_loader.js";
 import AmbientLight from "./nodes-core/ambient_light.js";
+import Skybox from "./nodes-core/skybox.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -105,6 +106,22 @@ class TestScene extends Scene {
             audioPlayer.setPitchRange(0.6, 1.7);
             audioPlayer.play();
         }
+        // Create and set up skybox
+        const skybox = new Skybox();
+        await skybox.addShaderPass('./assets/shaders/texture.glsl');
+
+        // Load cubemap textures
+        await skybox.loadCubemap([
+            './assets/textures/skybox/px.png',  // positive X
+            './assets/textures/skybox/nx.png',   // negative X
+            './assets/textures/skybox/py.png',    // positive Y
+            './assets/textures/skybox/ny.png', // negative Y
+            './assets/textures/skybox/pz.png',  // positive Z
+            './assets/textures/skybox/nz.png'    // negative Z
+        ]);
+
+        // Add to scene
+        this.addChild(skybox);
 
 
 
