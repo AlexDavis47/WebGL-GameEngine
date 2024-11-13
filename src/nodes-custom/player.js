@@ -122,6 +122,12 @@ class Player extends KinematicBody3D {
         if (inputManager.isKeyPressed(Keys.A)) this.moveDir[0] -= 1; // Left
         if (inputManager.isKeyPressed(Keys.D)) this.moveDir[0] += 1; // Right
 
+        if (inputManager.isKeyPressed(Keys.UP)) this.moveDir[2] -= 1; // Forward
+        if (inputManager.isKeyPressed(Keys.DOWN)) this.moveDir[2] += 1; // Backward
+        if (inputManager.isKeyPressed(Keys.LEFT)) this.moveDir[0] -= 1; // Left
+        if (inputManager.isKeyPressed(Keys.RIGHT)) this.moveDir[0] += 1; // Right
+
+
         let friction = this.isOnFloor() ? this._groundFriction : this._airFriction;
 
         const isCurrentlyMoving = vec3.length(this.moveDir) > 0;
