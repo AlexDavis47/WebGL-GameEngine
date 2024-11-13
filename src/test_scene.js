@@ -65,6 +65,22 @@ class TestScene extends Scene {
 
         this.addChild(radio);
 
+        const chair = new PhysicsBody3D();
+        await chair.setCollisionFromOBJ('./assets/models/chair/chair.obj');
+        chair.setMass(1);
+
+        const chairVisual = new Model3D();
+        await chairVisual.loadModel('./assets/models/chair/chair.obj');
+        await chairVisual.addShaderPass('./assets/shaders/texture.glsl');
+        await chairVisual.addShaderPass('./assets/shaders/phong.glsl');
+        chair.addChild(chairVisual);
+        chair.setScale(0.5, 0.5, 0.5);
+
+        chair.setPosition(0, 4, 3);
+        this.addChild(chair);
+
+
+
         const tree = new Model3D();
         await tree.loadModel('./assets/models/tree/palm.obj');
         await tree.addShaderPass('./assets/shaders/texture.glsl');
