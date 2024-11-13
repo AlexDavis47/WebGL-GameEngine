@@ -1,11 +1,13 @@
 import Model3D from "../nodes-core/model3d.js";
 import StaticBody3D from "../nodes-core/static_body_3d.js";
 import AudioPlayer3D from "../nodes-core/audio_player_3d.js";
+import PhysicsBody3D from "../nodes-core/physics_body_3d.js";
 
-class Radio extends Model3D {
+class Radio extends PhysicsBody3D {
     constructor() {
         super();
         this.name = "Radio";
+        this.radioVisual = new Model3D();
 
         // Define audio tracks
         this.audioTracks = [
@@ -16,15 +18,13 @@ class Radio extends Model3D {
     }
 
     async init() {
-        await this.loadModel('./assets/models/radio/radio_obj.obj');
-        await this.addShaderPass('./assets/shaders/texture.glsl');
-        await this.addShaderPass('./assets/shaders/phong.glsl');
-        this.setScale(3, 3, 3);
-        this.setPosition(5, 5, 3);
 
-        // Set up the static collision body
-        this.radioCollision = new StaticBody3D();
-        await this.radioCollision.setCollisionFromOBJ('./assets/models/radio/radio_obj.obj');
+        await this.radioVisual.loadModel('./assets/models/radio/radio_obj.obj');
+        await this.radioVisual.addShaderPass('./assets/shaders/texture.glsl');
+        await this.radioVisual.addShaderPass('./assets/shaders/phong.glsl');
+        this.setScale(2, 2, 2)
+
+        await this.setBoxShape(2, 2, 0.5);
 
         // Add the audio player with the initial track
         this.radioSong = new AudioPlayer3D();
@@ -33,7 +33,10 @@ class Radio extends Model3D {
 
         // Attach components
         this.addChild(this.radioSong);
-        this.addChild(this.radioCollision);
+        this.addChild(this.radioVisual);
+        this.setPosition(0, 5, 0);
+        await super.init();
+
     }
 
     async toggleSong() {

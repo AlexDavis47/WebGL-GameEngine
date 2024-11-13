@@ -42,15 +42,8 @@ class TestScene extends Scene {
 
 
         const ambientLight = new AmbientLight();
-        ambientLight.setIntensity(0.1);
+        ambientLight.setIntensity(0.3);
         this.addChild(ambientLight);
-
-        // Testing GLTF loader
-        // const microphone = new Model3D();
-        // await microphone.loadModel('./assets/models/microphone_glb/mic.glb');
-        // await microphone.addShaderPass('./assets/shaders/texture.glsl');
-        // microphone.setPosition(0, 6, 0);
-        // this.addChild(microphone);
 
 
         const sun = new PointLight();
@@ -61,8 +54,6 @@ class TestScene extends Scene {
         this.addChild(sun);
 
         const radio = new Radio();
-        radio.setScale(3, 3, 3);
-        radio.setPosition(5, 5, 3);
 
         this.addChild(radio);
 
@@ -80,15 +71,6 @@ class TestScene extends Scene {
         chair.setPosition(0, 4, 3);
         this.addChild(chair);
 
-
-
-        // const tree = new Model3D();
-        // await tree.loadModel('./assets/models/tree/palm.obj');
-        // await tree.addShaderPass('./assets/shaders/texture.glsl');
-        // await tree.addShaderPass('./assets/shaders/phong.glsl');
-        // tree.setScale(3, 3, 3);
-        // tree.setPosition(10, 0, 6);
-        // this.addChild(tree);
 
         for (let i = 0; i < 5; i++) {
             const tree = new PalmTree();
@@ -124,22 +106,6 @@ class TestScene extends Scene {
             audioPlayer.setPitchRange(0.6, 1.7);
             audioPlayer.play();
         }
-        // Create and set up skybox
-        const skybox = new Skybox();
-        await skybox.addShaderPass('./assets/shaders/texture.glsl');
-
-        // Load cubemap textures
-        await skybox.loadCubemap([
-            './assets/textures/skybox/px.png',  // positive X
-            './assets/textures/skybox/nx.png',   // negative X
-            './assets/textures/skybox/py.png',    // positive Y
-            './assets/textures/skybox/ny.png', // negative Y
-            './assets/textures/skybox/pz.png',  // positive Z
-            './assets/textures/skybox/nz.png'    // negative Z
-        ]);
-
-        // Add to scene
-        this.addChild(skybox);
 
 
 
