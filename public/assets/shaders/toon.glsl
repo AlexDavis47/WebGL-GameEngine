@@ -2,7 +2,7 @@
 const float TOON_AMBIENT = 1.0;
 const int LIGHT_BANDS = 6;     // Number of light bands for cel shading
 const float BAND_SOFTNESS = 0.1; // Softness between bands
-const float OUTLINE_THRESHOLD = 0.9; // Threshold for edge detection
+const float OUTLINE_THRESHOLD = 0.6; // Threshold for edge detection
 const float SPECULAR_SHININESS = 16.0;
 
 uniform float u_ambientLightAmount;

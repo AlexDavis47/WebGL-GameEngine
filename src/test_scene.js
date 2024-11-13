@@ -40,16 +40,14 @@ class TestScene extends Scene {
 
         const ambientLight = new AmbientLight();
         ambientLight.setIntensity(0.1);
-        ambientLight.setColor(1, 0, 1);
         this.addChild(ambientLight);
 
         // Testing GLTF loader
-        const microphone = new Model3D();
-        await microphone.loadModel('./assets/models/microphone_glb/mic.glb');
-        await microphone.addShaderPass('./assets/shaders/texture.glsl');
-        microphone.setScale(0.1, 0.1, 0.1);
-        microphone.setPosition(0, 0, 0);
-        this.addChild(microphone);
+        // const microphone = new Model3D();
+        // await microphone.loadModel('./assets/models/microphone_glb/mic.glb');
+        // await microphone.addShaderPass('./assets/shaders/texture.glsl');
+        // microphone.setPosition(0, 6, 0);
+        // this.addChild(microphone);
 
 
         const sun = new PointLight();
@@ -104,7 +102,7 @@ class TestScene extends Scene {
                 loop: true
             });
             audioPlayer.setPosition(Math.random() * 100 - 50, 10, Math.random() * 100 - 50);
-            audioPlayer.setPitchRange(0.8, 1.2);
+            audioPlayer.setPitchRange(0.6, 1.7);
             audioPlayer.play();
         }
 
