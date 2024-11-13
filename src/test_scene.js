@@ -64,6 +64,12 @@ class TestScene extends Scene {
         radio.addChild(radioSong);
         this.addChild(radio);
 
+        const tree = new Model3D();
+        await tree.loadModel('./assets/models/tree/palm.obj');
+        await tree.setShaderFromFile('./assets/shaders/phong.glsl');
+        tree.setScale(3, 3, 3);
+        tree.setPosition(10, 0, 6);
+        this.addChild(tree);
 
         const island = new StaticBody3D();
         await island.setCollisionFromOBJ('./assets/models/island/island.obj');
