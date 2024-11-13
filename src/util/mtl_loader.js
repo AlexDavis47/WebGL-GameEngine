@@ -8,7 +8,6 @@ class MTLLoader {
             basePath += '/';
         }
 
-        console.log('Starting MTL parse with basePath:', basePath);
 
         const lines = mtlText.split('\n');
 
@@ -23,7 +22,6 @@ class MTLLoader {
                         diffuseColor: [1, 1, 1],
                         loaded: false  // Track if textures are loaded
                     };
-                    console.log(`Creating new material: ${currentMaterial.name}`);
                     materials.set(currentMaterial.name, currentMaterial);
                     break;
 
@@ -48,7 +46,6 @@ class MTLLoader {
                         try {
                             currentMaterial.diffuseMap = await MTLLoader.loadTexture(fullPath);
                             currentMaterial.loaded = true;
-                            console.log(`Successfully loaded texture for ${currentMaterial.name}:`, fullPath);
                         } catch (error) {
                             console.error(`Failed to load texture for ${currentMaterial.name}:`, {
                                 material: currentMaterial.name,
@@ -64,10 +61,8 @@ class MTLLoader {
 
                             for (const altPath of alternatePaths) {
                                 try {
-                                    console.log(`Attempting alternate path: ${altPath}`);
                                     currentMaterial.diffuseMap = await MTLLoader.loadTexture(altPath);
                                     currentMaterial.loaded = true;
-                                    console.log(`Successfully loaded texture using alternate path for ${currentMaterial.name}:`, altPath);
                                     break;
                                 } catch (altError) {
                                     console.log(`Alternate path failed: ${altPath}`);
@@ -84,20 +79,9 @@ class MTLLoader {
                             parseFloat(tokens[2]),
                             parseFloat(tokens[3])
                         ];
-                        console.log(`Set diffuse color for ${currentMaterial.name}:`, currentMaterial.diffuseColor);
                     }
                     break;
             }
-        }
-
-        // Log summary of loaded materials
-        console.log('Material loading summary:');
-        for (const [name, material] of materials.entries()) {
-            console.log(`Material: ${name}`, {
-                hasTexture: !!material.diffuseMap,
-                loaded: material.loaded,
-                diffuseColor: material.diffuseColor
-            });
         }
 
         return materials;
@@ -108,10 +92,6 @@ class MTLLoader {
             const image = new Image();
 
             image.onload = () => {
-                console.log(`Texture loaded successfully: ${url}`, {
-                    width: image.width,
-                    height: image.height
-                });
                 resolve(image);
             };
 
@@ -124,7 +104,6 @@ class MTLLoader {
             const cacheBuster = `?t=${Date.now()}`;
             image.src = url + cacheBuster;
 
-            console.log(`Starting texture load: ${url}`);
         });
     }
 }

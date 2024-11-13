@@ -10,6 +10,7 @@ import physicsManager from "./physics_manager.js";
 import StaticBody3D from "./nodes-core/static_body_3d.js";
 import AudioPlayer from "./nodes-core/audio_player.js";
 import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
+import GLTFLoader from "./util/GLTF_loader.js";
 
 class TestScene extends Scene {
     constructor() {
