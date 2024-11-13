@@ -18,7 +18,6 @@ class TestScene extends Scene {
         super();
         this.name = "TestScene";
         this._camera = null;
-        this.setAmbientLight(0.5, 0.5, 0.5);
     }
 
     async init() {
@@ -34,19 +33,20 @@ class TestScene extends Scene {
 
         const ocean = new Model3D();
         await ocean.loadModel('./assets/models/ocean/ocean.obj');
-        await ocean.setShaderFromFile('./assets/shaders/water.glsl');
+        await ocean.addShaderPass('./assets/shaders/water.glsl');
         ocean.setScale(10, 10, 10);
         this.addChild(ocean);
 
 
         const ambientLight = new AmbientLight();
-        ambientLight.setIntensity(0.3);
+        ambientLight.setIntensity(0.1);
+        ambientLight.setColor(1, 0, 1);
         this.addChild(ambientLight);
 
         // Testing GLTF loader
         const microphone = new Model3D();
         await microphone.loadModel('./assets/models/microphone_glb/mic.glb');
-        await microphone.setShaderFromFile('./assets/shaders/phong.glsl');
+        await microphone.addShaderPass('./assets/shaders/texture.glsl');
         microphone.setScale(0.1, 0.1, 0.1);
         microphone.setPosition(0, 0, 0);
         this.addChild(microphone);
@@ -55,13 +55,14 @@ class TestScene extends Scene {
         const sun = new PointLight();
         sun.setPosition(0, 1000, 1000)
         sun.setRange(10000);
-        sun.setIntensity(1.0);
+        sun.setIntensity(1);
 
         this.addChild(sun);
 
         const radio = new Model3D;
         await radio.loadModel('./assets/models/radio/radio_obj.obj');
-        await radio.setShaderFromFile('./assets/shaders/phong.glsl');
+        await radio.addShaderPass('./assets/shaders/texture.glsl');
+        await radio.addShaderPass('./assets/shaders/phong.glsl');
         radio.setScale(3, 3, 3);
         radio.setPosition(5, 5, 3);
 
@@ -76,7 +77,8 @@ class TestScene extends Scene {
 
         const tree = new Model3D();
         await tree.loadModel('./assets/models/tree/palm.obj');
-        await tree.setShaderFromFile('./assets/shaders/phong.glsl');
+        await tree.addShaderPass('./assets/shaders/texture.glsl');
+        await tree.addShaderPass('./assets/shaders/phong.glsl');
         tree.setScale(3, 3, 3);
         tree.setPosition(10, 0, 6);
         this.addChild(tree);
@@ -89,7 +91,8 @@ class TestScene extends Scene {
         // Island model
         const islandVisual = new Model3D();
         await islandVisual.loadModel('./assets/models/island/island.obj');
-        await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
+        await islandVisual.addShaderPass('./assets/shaders/texture.glsl');
+        await islandVisual.addShaderPass('./assets/shaders/phong.glsl');
 
         island.addChild(islandVisual);
 
@@ -113,7 +116,7 @@ class TestScene extends Scene {
         const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
         await boxVisual.addShaderPass('./assets/shaders/phong.glsl');
-        await boxVisual.addShaderPass('./assets/shaders/red.glsl');
+        await boxVisual.addShaderPass('./assets/shaders/water.glsl');
         testBox.addChild(boxVisual);
 
         const audioPlayer = new AudioPlayer3D();

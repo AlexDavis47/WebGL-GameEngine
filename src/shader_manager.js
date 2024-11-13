@@ -188,8 +188,6 @@ class ShaderManager {
         return this.defaultProgram;
     }
 
-    // In ShaderManager.js, modify beginPass:
-
     beginPass(passIndex, material) {
         const pass = material._passes[passIndex];
         if (!pass) return false;
@@ -201,14 +199,13 @@ class ShaderManager {
         const isLastPass = passIndex === material._passes.length - 1;
         if (isLastPass) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            // Use the same viewport settings as the game
             gl.viewport(vpX, vpY, vpWidth, vpHeight);
             return true;
         }
 
         // Create or recreate buffers if needed
         if (!this.pingPongBuffers.read ||
-            this.pingPongBuffers.read.width !== vpWidth ||
+            this.pingPongBuffers.read.width !== vpWidth ||  // Match viewport size
             this.pingPongBuffers.read.height !== vpHeight) {
 
             // Cleanup old buffers
@@ -219,7 +216,7 @@ class ShaderManager {
                 this.cleanupFramebuffer(this.pingPongBuffers.write);
             }
 
-            // Create new buffers at the viewport size
+            // Create new buffers matching the viewport size
             this.pingPongBuffers.read = this.createFramebuffer(vpWidth, vpHeight);
             this.pingPongBuffers.write = this.createFramebuffer(vpWidth, vpHeight);
         }
@@ -227,13 +224,12 @@ class ShaderManager {
         // Bind write buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongBuffers.write.framebuffer);
 
-        // Use the same viewport settings for intermediate passes
-        gl.viewport(vpX, vpY, vpWidth, vpHeight);
+        // Use viewport dimensions exactly
+        gl.viewport(0, 0, vpWidth, vpHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         return true;
     }
-
     cleanupFramebuffer(fb) {
         if (fb.framebuffer) gl.deleteFramebuffer(fb.framebuffer);
         if (fb.texture) gl.deleteTexture(fb.texture);
@@ -247,9 +243,15 @@ class ShaderManager {
 
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        // Use RGBA8 format for better compatibility
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        // Use LINEAR filtering for better quality
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Use CLAMP_TO_EDGE to prevent sampling outside
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -257,8 +259,16 @@ class ShaderManager {
 
         const depthBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+
+        // Use DEPTH_COMPONENT16 for better performance
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+        // Check framebuffer status
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+            console.error('Framebuffer is not complete:', status);
+        }
 
         return {
             framebuffer,
@@ -268,13 +278,18 @@ class ShaderManager {
             height
         };
     }
-
     // New: End a render pass
     endPass() {
+        // Ensure we finish all GL commands before swapping
+        gl.finish();
+
         // Swap buffers
         const temp = this.pingPongBuffers.read;
         this.pingPongBuffers.read = this.pingPongBuffers.write;
         this.pingPongBuffers.write = temp;
+
+        // Unbind framebuffer to be safe
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
 
@@ -386,6 +401,12 @@ class ShaderManager {
             }
             if (uniforms.get('u_hasPreviousPass')) {
                 gl.uniform1i(uniforms.get('u_hasPreviousPass'), 1);
+            }
+
+            // Set viewport uniform to match the actual rendering viewport
+            if (uniforms.get('u_viewport')) {
+                const vp = gl.getParameter(gl.VIEWPORT);
+                gl.uniform4fv(uniforms.get('u_viewport'), new Float32Array([0, 0, vp[2], vp[3]]));
             }
         } else if (uniforms.get('u_hasPreviousPass')) {
             gl.uniform1i(uniforms.get('u_hasPreviousPass'), 0);
@@ -532,7 +553,6 @@ class ShaderManager {
 
     setCustomUniforms(program) {
         const {uniforms} = program;
-
 
         if (uniforms.get('u_time')) {
             gl.uniform1f(uniforms.get('u_time'), performance.now() / 1000.0);

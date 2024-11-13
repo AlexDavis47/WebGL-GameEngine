@@ -59,20 +59,22 @@ vec3 light(Light light) {
 }
 
 vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass) {
+    if (!u_hasPreviousPass) {
+        return vec4(0.0);  // Should never happen in a lighting pass
+    }
+
     vec3 result = vec3(0.0);
 
-    // Apply all lights
+    // Calculate lighting contribution from all lights
     for(int i = 0; i < u_numLights; i++) {
-        result += light(u_lights[i]) * baseColor;
+        result += light(u_lights[i]);
     }
+
+    // Multiply lighting with the base color from previous pass
+    vec4 litColor = vec4(previousPass.rgb * result, previousPass.a);
 
     // Apply gamma correction
-    result = pow(result, vec3(1.0/2.2));
+    litColor.rgb = pow(litColor.rgb, vec3(1.0/2.2));
 
-    // Handle multi-pass rendering
-    if(u_hasPreviousPass) {
-        return vec4(result, 1.0) * previousPass;
-    }
-
-    return vec4(result, 1.0);
+    return litColor;
 }

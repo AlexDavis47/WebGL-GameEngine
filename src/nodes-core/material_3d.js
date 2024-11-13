@@ -21,15 +21,16 @@ class Material3D {
         this.roughnessMap = null;
         this.metallicMap = null;
 
-        // Shader program reference
-        this._shaderProgram = null;
-
         // Custom uniforms storage
         this._uniforms = new Map();
 
         // Pass system
         this._passes = [];
         this._activePass = 0;
+        this._initialized = false;
+
+        // Add default spatial shader as first pass
+        this.addPass('spatial');
     }
 
     // Uniform methods
@@ -46,28 +47,51 @@ class Material3D {
         return this._uniforms.has(name);
     }
 
-    // Pass management
-    addPass(shaderPath) {
-        this._passes.push({
-            shaderPath,
+    addPass(shaderNameOrPath) {
+        const passIndex = this._passes.push({
+            shaderPath: shaderNameOrPath,
             program: null,
             uniforms: new Map()
-        });
-        return this._passes.length - 1; // Return pass index
+        }) - 1;
+
+        // Mark as uninitialized when adding new passes
+        this._initialized = false;
+
+        return passIndex;
     }
+
 
     getPass(index) {
         return this._passes[index];
     }
 
     async initializePasses() {
-        for (const pass of this._passes) {
-            if (!pass.program) {
-                const shaderName = `${this.name}_${Date.now()}_pass${this._passes.indexOf(pass)}`;
-                pass.program = await shaderManager.loadShader(shaderName, pass.shaderPath);
+        if (this._initialized) return;
+
+        try {
+            for (const pass of this._passes) {
+                if (!pass.program) {
+                    if (pass.shaderPath === 'spatial') {
+                        pass.program = shaderManager.getDefaultProgram();
+                    } else {
+                        const shaderName = `${this.name}_${Date.now()}_pass${this._passes.indexOf(pass)}`;
+                        pass.program = await shaderManager.loadShader(shaderName, pass.shaderPath);
+                    }
+                }
             }
+            this._initialized = true;
+        } catch (error) {
+            console.error('Error initializing passes:', error);
+            // On error, reset to default spatial shader
+            this._passes = [{
+                shaderPath: 'spatial',
+                program: shaderManager.getDefaultProgram(),
+                uniforms: new Map()
+            }];
+            this._initialized = true;
         }
     }
+S
 
     setPassUniform(passIndex, name, value) {
         const pass = this._passes[passIndex];
@@ -77,12 +101,15 @@ class Material3D {
         return this;
     }
 
+
     getActiveProgram() {
-        if (this._passes.length > 0) {
-            return this._passes[this._activePass]?.program;
+        if (this._initialized && this._passes.length > 0) {
+            const activePass = this._passes[this._activePass];
+            return activePass?.program || shaderManager.getDefaultProgram();
         }
-        return this._shaderProgram;
+        return shaderManager.getDefaultProgram();
     }
+
 
     // Shader management
     async setShader(shaderPath) {

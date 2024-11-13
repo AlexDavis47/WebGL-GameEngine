@@ -62,10 +62,9 @@ class Gun extends Model3D {
             maxPitch: 1.2
         });
 
-
-
         await this.loadModel('./assets/models/gun/gun.obj');
-        await this.setShaderFromFile('./assets/shaders/phong.glsl');
+        await this.addShaderPass('./assets/shaders/texture.glsl');
+        await this.addShaderPass('./assets/shaders/toon.glsl');
     }
 
     update(deltaTime) {

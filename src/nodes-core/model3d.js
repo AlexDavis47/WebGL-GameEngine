@@ -64,14 +64,9 @@ class Model3D extends Node3D {
 
     async _loadGLTF(path) {
         const model = await GLTFLoader.load(path);
-
         this._submeshes = [];
 
-        // Create a default shader program if none exists
-        const defaultProgram = shaderManager.getDefaultProgram();
-
         for (const mesh of model.meshes) {
-            // Skip empty meshes
             if (!mesh.positions.length) continue;
 
             const submesh = {
@@ -128,24 +123,12 @@ class Model3D extends Node3D {
 
             // Set up material properties
             if (mesh.material) {
-                // Create new material and update it with GLTF properties
-                submesh.material = new Material3D(this.name + "_Material_" + this._submeshes.length);
                 submesh.material.updateFromGLTF(mesh.material);
-
-                // Set textures if they exist
                 if (mesh.material.baseColorTexture) {
                     submesh.material.setTexture('albedo', mesh.material.baseColorTexture);
                 }
-
-                // Ensure material has a shader program
-                if (!submesh.material.getShaderProgram()) {
-                    submesh.material.setProgram(defaultProgram);
-                }
-            }
-
-            // Ensure material has a shader program
-            if (!submesh.material.getShaderProgram()) {
-                submesh.material.setProgram(defaultProgram);
+                // Initialize material passes
+                await submesh.material.initializePasses();
             }
 
             this._submeshes.push(submesh);
@@ -254,30 +237,28 @@ class Model3D extends Node3D {
         await super.ready();
     }
 
-    render() {
+    async render() {
         if (!this.enabled) return;
 
         const scene = this.getRootNode();
 
         // Debug check
         if (this._submeshes.length === 0 && !this._vao) {
-            console.warn('Model3D: No geometry to render');
             return;
+        }
+
+        // Ensure the material is initialized
+        if (this._material && !this._material._initialized) {
+            await this._material.initializePasses();
         }
 
         if (this._submeshes.length > 0) {
             // GLTF rendering path
             for (const submesh of this._submeshes) {
-                if (!submesh.vao || submesh.indexCount === 0) {
-                    console.warn('Invalid submesh detected, skipping');
-                    continue;
-                }
+                if (!submesh.vao || submesh.indexCount === 0) continue;
 
-                const program = submesh.material.getShaderProgram() || shaderManager.getDefaultProgram();
-                if (!program) {
-                    console.warn('No shader program available for submesh');
-                    continue;
-                }
+                const program = submesh.material.getActiveProgram();
+                if (!program) continue;
 
                 gl.useProgram(program.program);
                 shaderManager.setUniforms(program, scene.activeCamera, this, scene);
@@ -287,50 +268,38 @@ class Model3D extends Node3D {
                 gl.bindVertexArray(null);
             }
         } else if (this._vao) {
-            if (this._material._passes.length > 0) {
-                // Execute each pass
-                for (let i = 0; i < this._material._passes.length; i++) {
-                    // Set the current pass
-                    this._material._activePass = i;
+            const program = this._material.getActiveProgram();
+            if (!program) return;
 
-                    // Check if this is the final pass
+            if (this._material._passes.length > 1) {
+                // Multi-pass rendering
+                for (let i = 0; i < this._material._passes.length; i++) {
+                    this._material._activePass = i;
+                    const currentPass = this._material._passes[i];
+                    const passProgram = currentPass.program;
+                    if (!passProgram) continue;
+
                     const isLastPass = i === this._material._passes.length - 1;
 
-                    if (isLastPass) {
-                        // Final pass renders to screen
-                        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                    } else {
-                        // Begin the pass using ShaderManager for intermediate passes
-                        if (!shaderManager.beginPass(i, this._material)) {
-                            continue;
-                        }
+                    if (!isLastPass) {
+                        if (!shaderManager.beginPass(i, this._material)) continue;
                     }
 
-                    // Get the program for this pass
-                    const program = this._material._passes[i].program;
-                    gl.useProgram(program.program);
+                    gl.useProgram(passProgram.program);
+                    shaderManager.setUniforms(passProgram, scene.activeCamera, this, scene);
 
-                    // Set all uniforms for this pass
-                    shaderManager.setUniforms(program, scene.activeCamera, this, scene);
-
-                    // Draw
                     gl.bindVertexArray(this._vao);
                     gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
                     gl.bindVertexArray(null);
 
-                    // Only end the pass if it's not the final pass
                     if (!isLastPass) {
                         shaderManager.endPass();
                     }
                 }
-
-                // Reset active pass
                 this._material._activePass = 0;
             } else {
-                // Original single-pass rendering
-                const program = this._material.getShaderProgram() || shaderManager.getDefaultProgram();
+                // Single-pass rendering
                 gl.useProgram(program.program);
-
                 shaderManager.setUniforms(program, scene.activeCamera, this, scene);
 
                 gl.bindVertexArray(this._vao);
@@ -342,7 +311,7 @@ class Model3D extends Node3D {
         // Render children
         for (const child of this.children) {
             if (child.render) {
-                child.render();
+                await child.render();
             }
         }
     }
@@ -390,11 +359,6 @@ class Model3D extends Node3D {
 
     setBaseColor(r, g, b) {
         this._material.baseColor = [r, g, b];
-        return this;
-    }
-
-    async setShaderFromFile(shaderPath) {
-        await this._material.setShader(shaderPath);
         return this;
     }
 

@@ -9,7 +9,6 @@ class Scene extends Node3D {
         this.name = "Scene";
 
         // Core scene properties
-        this._ambientLight = [0.1, 0.1, 0.1];
         this._clearColor = [0.0, 0.0, 0.0, 1.0];
         this._activeCamera = null;
 
@@ -19,10 +18,6 @@ class Scene extends Node3D {
         this._isRoot = true;
     }
 
-    // Property accessors
-    get ambientLight() {
-        return [...this._ambientLight];
-    }
 
     get clearColor() {
         return [...this._clearColor];
@@ -106,11 +101,6 @@ class Scene extends Node3D {
     setClearColor(r, g, b, a = 1.0) {
         this._clearColor = [r, g, b, a];
         gl.clearColor(r, g, b, a);
-        return this;
-    }
-
-    setAmbientLight(r, g, b) {
-        this._ambientLight = [r, g, b];
         return this;
     }
 
