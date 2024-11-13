@@ -10,6 +10,7 @@ import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 import AmbientLight from "./nodes-core/ambient_light.js";
 import Radio from "./nodes-custom/radio.js";
 import PalmTree from "./nodes-custom/palm_tree.js";
+import Firefly from "./nodes-custom/firefly.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -102,6 +103,12 @@ class TestScene extends Scene {
             audioPlayer.play();
         }
 
+        for (let i = 0; i < 2; i++) {
+            const firefly = new Firefly();
+            this.addChild(firefly);
+        }
+
+
 
 
         // Initialize the scene hierarchy
@@ -118,8 +125,7 @@ class TestScene extends Scene {
 
         const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
-        await boxVisual.addShaderPass('./assets/shaders/phong.glsl');
-        await boxVisual.addShaderPass('./assets/shaders/water.glsl');
+        await boxVisual.addShaderPass('./assets/shaders/toon.glsl');
         testBox.addChild(boxVisual);
     }
 

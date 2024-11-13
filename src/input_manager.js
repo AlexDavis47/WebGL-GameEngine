@@ -187,6 +187,17 @@ export const Keys = {
     Y: 'KeyY',
     Z: 'KeyZ',
 
+    ZERO: 'Digit0',
+    ONE: 'Digit1',
+    TWO: 'Digit2',
+    THREE: 'Digit3',
+    FOUR: 'Digit4',
+    FIVE: 'Digit5',
+    SIX: 'Digit6',
+    SEVEN: 'Digit7',
+    EIGHT: 'Digit8',
+    NINE: 'Digit9',
+
     LEFT: 'ArrowLeft',
     RIGHT: 'ArrowRight',
     UP: 'ArrowUp',

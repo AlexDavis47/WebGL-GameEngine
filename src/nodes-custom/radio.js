@@ -8,6 +8,9 @@ class Radio extends PhysicsBody3D {
         this.name = "Radio";
         this.radioVisual = new Model3D();
 
+        this.lightTimer = 0;
+        this.lightInterval = 0.5;
+
         // Define audio tracks
         this.audioTracks = [
             './assets/ambience/portalradio.mp3',
@@ -37,6 +40,11 @@ class Radio extends PhysicsBody3D {
         await super.init();
 
     }
+
+    update(deltaTime) {
+        super.update(deltaTime);
+    }
+
 
     async toggleSong() {
         // Toggle the track index (0 -> 1 or 1 -> 0)

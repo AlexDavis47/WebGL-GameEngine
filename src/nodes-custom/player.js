@@ -5,6 +5,7 @@ import {vec3} from 'gl-matrix';
 import inputManager, {Keys} from "../input_manager.js";
 import AudioReceiver from "../nodes-core/audio_receiver.js";
 import AudioPlayer from "../nodes-core/audio_player.js";
+import PointLight from "../nodes-core/point_light.js";
 
 class Player extends KinematicBody3D {
     constructor() {
@@ -38,6 +39,14 @@ class Player extends KinematicBody3D {
         this._camera.setPerspective(70, 0.1, 500000);
         this._camera.setPosition(0, 1.7, 0); // camera height
         this.addChild(this._camera);
+
+        this.p_light = new PointLight();
+        this.p_light.setPosition(0, 1.7, 0);
+        this.p_light.setRange(10);
+        this.p_light.setIntensity(1);
+        this.p_light.setColor(1, 0, 1);
+        this._camera.addChild(this.p_light);
+
 
         // Gun setup
         this._gun = new Gun();
@@ -203,6 +212,23 @@ class Player extends KinematicBody3D {
             this.handleRotation();
             this.handleMovement(deltaTime);
         }
+
+        if (inputManager.isKeyJustPressed(Keys.ONE)) {
+            this.p_light.setColor(1, 0, 0);
+            this.p_light.intensity = 1;
+        }
+        if (inputManager.isKeyJustPressed(Keys.TWO)) {
+            this.p_light.setColor(0, 1, 0);
+            this.p_light.intensity = 1;
+        }
+        if (inputManager.isKeyJustPressed(Keys.THREE)) {
+            this.p_light.setColor(0, 0, 1);
+            this.p_light.intensity = 1;
+        }
+        if (inputManager.isKeyJustPressed(Keys.FOUR)) {
+            this.p_light.intensity = 0;
+        }
+
 
         super.update(deltaTime);
     }
