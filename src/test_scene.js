@@ -11,6 +11,7 @@ import StaticBody3D from "./nodes-core/static_body_3d.js";
 import AudioPlayer from "./nodes-core/audio_player.js";
 import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 import GLTFLoader from "./util/GLTF_loader.js";
+import Radio from "./nodes-custom/radio.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -49,19 +50,9 @@ class TestScene extends Scene {
 
         this.addChild(sun);
 
-        const radio = new Model3D;
-        await radio.loadModel('./assets/models/radio/radio_obj.obj');
-        await radio.setShaderFromFile('./assets/shaders/phong.glsl');
+        const radio = new Radio();
         radio.setScale(3, 3, 3);
         radio.setPosition(5, 5, 3);
-
-        const radioSong = new AudioPlayer3D();
-        await radioSong.loadSound('./assets/ambience/portalradio.mp3', {
-            loop: true
-        });
-
-        radioSong.play();
-        radio.addChild(radioSong);
         this.addChild(radio);
 
         const tree = new Model3D();
