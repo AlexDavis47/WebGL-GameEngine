@@ -56,7 +56,7 @@ class TestScene extends Scene {
         radio.setPosition(5, 5, 3);
 
         const radioSong = new AudioPlayer3D();
-        await radioSong.loadSound('./assets/ambience/hell.mp3', {
+        await radioSong.loadSound('./assets/ambience/portalradio.mp3', {
             loop: true
         });
 
