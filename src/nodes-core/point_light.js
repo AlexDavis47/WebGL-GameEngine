@@ -1,5 +1,5 @@
 // nodes-core/point_light.js
-import Light, { LightType } from './light.js';
+import Light, {LightType} from './light.js';
 
 class PointLight extends Light {
     constructor() {

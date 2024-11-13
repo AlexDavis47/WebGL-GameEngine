@@ -1,5 +1,4 @@
-
-import Light, { LightType } from './light.js';
+import Light, {LightType} from './light.js';
 
 class DirectionalLight extends Light {
     constructor() {

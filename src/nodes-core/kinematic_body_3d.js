@@ -1,6 +1,6 @@
 import PhysicsBody3D from './physics_body_3d.js';
 import RAPIER from '@dimforge/rapier3d-compat';
-import { vec3 } from 'gl-matrix';
+import {vec3} from 'gl-matrix';
 import physicsManager from "../physics_manager.js";
 
 class KinematicBody3D extends PhysicsBody3D {

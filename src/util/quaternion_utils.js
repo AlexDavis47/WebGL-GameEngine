@@ -1,5 +1,5 @@
 // Utility functions for quaternion conversions because glMatrix HATES ME :(
-import { quat } from "gl-matrix";
+import {quat} from "gl-matrix";
 
 const QuaternionUtils = {
     // Convert quaternion to Euler angles (in radians)

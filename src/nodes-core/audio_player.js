@@ -1,5 +1,6 @@
 // audio_player.js
 import Node3D from './node3d.js';
+import {Howl} from 'howler';
 
 
 class AudioPlayer extends Node3D {

@@ -1,6 +1,6 @@
 import Node from './node.js';
 import QuaternionUtils from "../util/quaternion_utils.js";
-import {vec3, mat4, quat} from "gl-matrix";
+import {mat4, quat, vec3} from "gl-matrix";
 
 class Node3D extends Node {
     constructor() {

@@ -1,7 +1,5 @@
-import Node from './node.js';
 import Camera3D from './camera3d.js';
 import Node3D from "./node3d.js";
-import physicsManager from "../physics_manager.js";
 
 class Scene extends Node3D {
     constructor() {

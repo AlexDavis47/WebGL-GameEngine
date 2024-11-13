@@ -2,7 +2,7 @@ import Node3D from './node3d.js';
 import OBJLoader from "../util/obj_loader.js";
 import RAPIER from '@dimforge/rapier3d-compat';
 import physicsManager from '../physics_manager.js';
-import { quat } from 'gl-matrix';
+import {quat} from 'gl-matrix';
 
 class PhysicsBody3D extends Node3D {
     constructor() {

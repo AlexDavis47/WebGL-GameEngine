@@ -1,4 +1,4 @@
-import Light, { LightType } from './light.js';
+import Light, {LightType} from './light.js';
 
 class AmbientLight extends Light {
     constructor() {

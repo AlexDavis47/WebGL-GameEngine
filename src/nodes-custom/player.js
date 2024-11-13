@@ -1,8 +1,8 @@
 import KinematicBody3D from '../nodes-core/kinematic_body_3d.js';
 import Camera3D from '../nodes-core/camera3d.js';
 import Gun from './gun.js';
-import { vec3 } from 'gl-matrix';
-import inputManager, { Keys } from "../input_manager.js";
+import {vec3} from 'gl-matrix';
+import inputManager, {Keys} from "../input_manager.js";
 import AudioReceiver from "../nodes-core/audio_receiver.js";
 import AudioPlayer from "../nodes-core/audio_player.js";
 
@@ -62,7 +62,7 @@ class Player extends KinematicBody3D {
 
     async ready(){
         super.ready();
-        await this.footstep.loadSound('/assets/sounds/footstep.mp3', {
+        await this.footstep.loadSound('./assets/sounds/footstep.mp3', {
             minPitch: 0.8,
             maxPitch: 1.2,
         });

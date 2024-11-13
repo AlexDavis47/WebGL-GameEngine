@@ -1,18 +1,13 @@
 import Scene from './nodes-core/scene.js';
-import FPSCamera from './nodes-custom/fps_camera.js';
 import Model3D from "./nodes-core/model3d.js";
 import PointLight from "./nodes-core/point_light.js";
-import Gun from "./nodes-custom/gun.js";
 import PhysicsBody3D from "./nodes-core/physics_body_3d.js";
 import Player from "./nodes-custom/player.js";
 import inputManager, {Keys} from "./input_manager.js";
 import physicsManager from "./physics_manager.js";
 import StaticBody3D from "./nodes-core/static_body_3d.js";
-import AudioPlayer from "./nodes-core/audio_player.js";
 import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
-import GLTFLoader from "./util/GLTF_loader.js";
 import AmbientLight from "./nodes-core/ambient_light.js";
-import Skybox from "./nodes-core/skybox.js";
 import Radio from "./nodes-custom/radio.js";
 import PalmTree from "./nodes-custom/palm_tree.js";
 

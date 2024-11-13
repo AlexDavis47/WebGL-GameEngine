@@ -1,11 +1,11 @@
-
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import TestScene from './test_scene.js';
-import ShaderManager from './shader_manager.js';
-import { defaultVertexShader, defaultFragmentShader } from './default_shaders.js';
 import engine from "./engine.js";
 import input_manager from "./input_manager.js";
 import physicsManager from "./physics_manager.js";
-import audioManager from "./audio_manager.js";
 
 class Game {
     constructor(options = {}) {

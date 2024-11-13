@@ -1,7 +1,6 @@
 import Camera3D from "../nodes-core/camera3d.js";
-import Model3D from "../nodes-core/model3d.js";
 import inputManager, {Keys} from "../input_manager.js";
-import {vec3, quat, glMatrix} from "gl-matrix";
+import {vec3} from "gl-matrix";
 
 class FPSCamera extends Camera3D {
     constructor() {

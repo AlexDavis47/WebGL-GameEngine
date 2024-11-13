@@ -1,7 +1,5 @@
 import Model3D from "../nodes-core/model3d.js";
-import Bullet from "../nodes-custom/bullet.js";
 import inputManager from "../input_manager.js";
-import {vec3} from "gl-matrix";
 import AudioPlayer from "../nodes-core/audio_player.js";
 
 class Gun extends Model3D {

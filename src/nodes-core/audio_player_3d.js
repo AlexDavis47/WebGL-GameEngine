@@ -1,5 +1,4 @@
 import AudioPlayer from "./audio_player.js";
-import Node3D from "./node3d.js";
 
 
 class AudioPlayer3D extends AudioPlayer {

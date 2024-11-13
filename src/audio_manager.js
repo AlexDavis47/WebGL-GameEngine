@@ -1,4 +1,4 @@
-import { Howl, Howler } from 'howler';
+import {Howler} from 'howler';
 
 class AudioManager {
     constructor() {
