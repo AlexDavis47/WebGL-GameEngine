@@ -25,7 +25,7 @@ class Game {
         // Timing
         this._lastFrameTime = 0;
         this._targetFPS = options.targetFPS || 60;
-        this._fixedTimeStep = 1 / this._targetFPS;
+        this._fixedTimeStep = 1 / 60; // Fixed 60fps for physics
         this._maxFrameTime = this._fixedTimeStep * 5;
         this._accumulator = 0;
 
@@ -35,7 +35,6 @@ class Game {
 
         this.init().then(r => console.log('Game initialized'));
     }
-
 
     async init() {
         // Initialize engine with our canvas
@@ -120,24 +119,25 @@ class Game {
 
         // Calculate frame time and clamp it
         let deltaTime = (currentTime - this._lastFrameTime) / 1000;
-
         deltaTime = Math.min(deltaTime, this._maxFrameTime);
 
-        // Update
+        // Update physics at fixed timestep
         if (!this._isPaused) {
-            physicsManager.step();
-            if (this._activeScene) {
-                this._activeScene.update(deltaTime);
+            this._accumulator += deltaTime;
+
+            while (this._accumulator >= this._fixedTimeStep) {
+                physicsManager.step();
+                if (this._activeScene) {
+                    this._activeScene.update(this._fixedTimeStep);
+                }
+                this._accumulator -= this._fixedTimeStep;
             }
         }
-        this._accumulator -= this._fixedTimeStep;
 
-        // Render
+        // Render (runs at whatever FPS the system can handle)
         if (this._activeScene) {
             this._activeScene.render(gl);
         }
-
-
 
         this._lastFrameTime = currentTime;
         requestAnimationFrame(this.gameLoop.bind(this));
@@ -156,9 +156,9 @@ class Game {
     // Configuration methods
     setTargetFPS(fps) {
         this._targetFPS = fps;
-        this._fixedTimeStep = 1 / fps;
         return this;
     }
+
 
     setAspectRatio(ratio) {
         this._targetAspectRatio = ratio;
