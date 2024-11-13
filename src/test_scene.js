@@ -97,6 +97,16 @@ class TestScene extends Scene {
         island.addChild(islandVisual);
 
 
+        // Create seagull ambiance
+        for (let i = 0; i < 10; i++) {
+            const audioPlayer = new AudioPlayer3D();
+            await audioPlayer.loadSound('./assets/ambience/seagulls.mp3', {
+                loop: true
+            });
+            audioPlayer.setPosition(Math.random() * 100 - 50, 10, Math.random() * 100 - 50);
+            audioPlayer.setPitchRange(0.8, 1.2);
+            audioPlayer.play();
+        }
 
 
 
@@ -119,10 +129,7 @@ class TestScene extends Scene {
         await boxVisual.addShaderPass('./assets/shaders/water.glsl');
         testBox.addChild(boxVisual);
 
-        const audioPlayer = new AudioPlayer3D();
-        await audioPlayer.loadSound('./assets/ambience/seagulls.mp3', {
-            loop: true
-        });
+
         testBox.addChild(audioPlayer);
         audioPlayer.play();
     }
