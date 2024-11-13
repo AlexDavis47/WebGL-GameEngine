@@ -149,18 +149,19 @@ class ShaderManager {
             throw new Error('Base spatial shader not found');
         }
 
-        // Update the function signatures in the replacement
+        // Update the function signatures in the replacement to match the base shader
         const updatedShaderCode = shaderCode.replace(
             /vec4\s+fragment\s*\(\s*vec3\s+baseColor\s*,\s*vec3\s+normal\s*,\s*vec2\s+uv\s*\)/g,
             'vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass)'
         );
 
-        // Replace the default fragment and light functions with the custom ones
+        // Find and replace just the fragment function
         const modifiedSource = baseProgram.shaderSource.replace(
-            /\/\/ Default fragment implementation[\s\S]*?}[\s\S]*?\/\/ Default light implementation[\s\S]*?}/,
+            /\/\/ Default fragment implementation[\s\S]*?^}(?=\s*\n)/m,
             updatedShaderCode
         );
 
+        // Create the program with the modified source
         return this.createProgram(name, modifiedSource);
     }
 

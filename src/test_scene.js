@@ -34,13 +34,13 @@ class TestScene extends Scene {
 
         const ocean = new Model3D();
         await ocean.loadModel('./assets/models/ocean/ocean.obj');
-        await ocean.setShaderFromFile('./assets/shaders/water_material.glsl');
-        ocean.setScale(100, 10, 100);
+        await ocean.setShaderFromFile('./assets/shaders/water.glsl');
+        ocean.setScale(10, 10, 10);
         this.addChild(ocean);
 
 
         const ambientLight = new AmbientLight();
-        ambientLight.setIntensity(0.2);
+        ambientLight.setIntensity(0.3);
         this.addChild(ambientLight);
 
         // Testing GLTF loader
