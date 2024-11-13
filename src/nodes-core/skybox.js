@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Model3D from "./model3d.js";
 
 class Skybox extends Model3D {

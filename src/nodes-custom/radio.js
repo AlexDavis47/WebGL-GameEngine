@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Model3D from "../nodes-core/model3d.js";
 import AudioPlayer3D from "../nodes-core/audio_player_3d.js";
 import PhysicsBody3D from "../nodes-core/physics_body_3d.js";

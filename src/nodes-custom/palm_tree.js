@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Model3D from "../nodes-core/model3d.js";
 import Node3D from "../nodes-core/node3d.js";
 

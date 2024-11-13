@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Camera3D from './camera3d.js';
 import Node3D from "./node3d.js";
 

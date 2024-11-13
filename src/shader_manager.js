@@ -1,3 +1,8 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
+
 import Light from "./nodes-core/light.js";
 import {mat4} from "gl-matrix";
 

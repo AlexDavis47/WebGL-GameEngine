@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Node3D from "./node3d.js";
 import {glMatrix, mat4, vec4} from "gl-matrix";
 

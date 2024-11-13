@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 class MTLLoader {
     static async parse(mtlText, basePath = '') {
         const materials = new Map();

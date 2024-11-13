@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Node from './node.js';
 import QuaternionUtils from "../util/quaternion_utils.js";
 import {mat4, quat, vec3} from "gl-matrix";

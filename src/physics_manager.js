@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import RAPIER from '@dimforge/rapier3d-compat';
 
 class PhysicsManager {

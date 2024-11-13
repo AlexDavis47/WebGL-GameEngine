@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import PhysicsBody3D from './physics_body_3d.js';
 import RAPIER from '@dimforge/rapier3d-compat';
 

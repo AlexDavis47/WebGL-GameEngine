@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import shaderManager from './shader_manager';
 import inputManager from './input_manager';
 import physicsManager from "./physics_manager.js";

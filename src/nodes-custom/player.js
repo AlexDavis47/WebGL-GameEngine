@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import KinematicBody3D from '../nodes-core/kinematic_body_3d.js';
 import Camera3D from '../nodes-core/camera3d.js';
 import Gun from './gun.js';

@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 // Utility functions for quaternion conversions because glMatrix HATES ME :(
 import {quat} from "gl-matrix";
 

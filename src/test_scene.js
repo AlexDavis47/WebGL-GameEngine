@@ -1,3 +1,7 @@
+/**
+ * Developers: Alexander Davis, Maika West, Austin Medina.
+ * Date: 11/12/2024
+ */
 import Scene from './nodes-core/scene.js';
 import Model3D from "./nodes-core/model3d.js";
 import PointLight from "./nodes-core/point_light.js";
