@@ -12,7 +12,7 @@ class ShaderManager {
         this.defaultProgram = null;
         this.initialized = false;
 
-        // New: Framebuffer management for multi-pass rendering
+        // Framebuffer management for multi-pass rendering
         this.framebuffers = new Map();
         this.currentFramebuffer = null;
 
@@ -43,8 +43,6 @@ class ShaderManager {
             if (typeof path === 'string' && path.includes('\n')) {
                 return path;
             }
-
-            // Note: glslify processing is handled by Vite plugin
             const response = await fetch(path);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,11 +56,29 @@ class ShaderManager {
 
 
     async initializeSpatialShader() {
-        const spatialVertex = await this.getShaderSource('./assets/shaders/CORE_SPATIAL_VERTEX.glsl');
-        const spatialFragment = await this.getShaderSource('./assets/shaders/CORE_SPATIAL_FRAGMENT.glsl');
-
-        this.createProgram('spatial', spatialVertex, spatialFragment);
+        const spatialShader = await this.getShaderSource('./assets/shaders/CORE_SPATIAL.glsl');
+        this.createProgram('spatial', spatialShader);
         this.setDefaultProgram('spatial');
+    }
+
+    createShaderWithDefines(type, source, defines = {}) {
+        // Extract the version directive if it exists
+        const versionMatch = source.match(/^(#version [^\n]*\n)/);
+        const version = versionMatch ? versionMatch[1] : '';
+
+        // Remove version from source if found
+        const sourceWithoutVersion = versionMatch ?
+            source.slice(versionMatch[1].length) :
+            source;
+
+        // Combine version, defines, and remaining source
+        const processedSource = version +
+            Object.entries(defines)
+                .map(([key, value]) => `#define ${key} ${value}\n`)
+                .join('') +
+            sourceWithoutVersion;
+
+        return this.createShader(type, processedSource);
     }
 
     createShader(type, source) {
@@ -79,9 +95,13 @@ class ShaderManager {
         return shader;
     }
 
-    createProgram(name, vertexSource, fragmentSource) {
-        const vertexShader = this.createShader(gl.VERTEX_SHADER, vertexSource);
-        const fragmentShader = this.createShader(gl.FRAGMENT_SHADER, fragmentSource);
+    createProgram(name, shaderSource, customDefines = {}) {
+        // Add appropriate shader type defines
+        const vertexDefines = { ...customDefines, VERTEX_SHADER: 1 };
+        const fragmentDefines = { ...customDefines, FRAGMENT_SHADER: 1 };
+
+        const vertexShader = this.createShaderWithDefines(gl.VERTEX_SHADER, shaderSource, vertexDefines);
+        const fragmentShader = this.createShaderWithDefines(gl.FRAGMENT_SHADER, shaderSource, fragmentDefines);
 
         const program = gl.createProgram();
         gl.attachShader(program, vertexShader);
@@ -114,35 +134,35 @@ class ShaderManager {
             program,
             uniforms,
             attributes,
-            vertexSource,    // Store sources for custom shader creation
-            fragmentSource
+            shaderSource
         };
 
         this.shaderPrograms.set(name, programInfo);
         return programInfo;
     }
 
-    // In ShaderManager.js
 
     createCustomShader(name, {shaderCode}) {
-        // Get the base spatial shader sources
+        // Get the base spatial shader source
         const baseProgram = this.shaderPrograms.get('spatial');
-        let vertexShader = baseProgram.vertexSource;
-        let fragmentShader = baseProgram.fragmentSource;
+        if (!baseProgram || !baseProgram.shaderSource) {
+            throw new Error('Base spatial shader not found');
+        }
 
-        // Update the function signatures in the replacement
+        // Update the function signatures in the replacement to match the base shader
         const updatedShaderCode = shaderCode.replace(
             /vec4\s+fragment\s*\(\s*vec3\s+baseColor\s*,\s*vec3\s+normal\s*,\s*vec2\s+uv\s*\)/g,
             'vec4 fragment(vec3 baseColor, vec3 normal, vec2 uv, vec4 previousPass)'
         );
 
-        // Replace the default fragment and light functions with the custom ones
-        fragmentShader = fragmentShader.replace(
-            /\/\/ Default fragment implementation[\s\S]*?}[\s\S]*?\/\/ Default light implementation[\s\S]*?}/,
+        // Find and replace just the fragment function
+        const modifiedSource = baseProgram.shaderSource.replace(
+            /\/\/ Default fragment implementation[\s\S]*?^}(?=\s*\n)/m,
             updatedShaderCode
         );
 
-        return this.createProgram(name, vertexShader, fragmentShader);
+        // Create the program with the modified source
+        return this.createProgram(name, modifiedSource);
     }
 
     async loadShader(name, path) {
@@ -168,8 +188,6 @@ class ShaderManager {
         return this.defaultProgram;
     }
 
-    // In ShaderManager.js, modify beginPass:
-
     beginPass(passIndex, material) {
         const pass = material._passes[passIndex];
         if (!pass) return false;
@@ -181,14 +199,13 @@ class ShaderManager {
         const isLastPass = passIndex === material._passes.length - 1;
         if (isLastPass) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            // Use the same viewport settings as the game
             gl.viewport(vpX, vpY, vpWidth, vpHeight);
             return true;
         }
 
         // Create or recreate buffers if needed
         if (!this.pingPongBuffers.read ||
-            this.pingPongBuffers.read.width !== vpWidth ||
+            this.pingPongBuffers.read.width !== vpWidth ||  // Match viewport size
             this.pingPongBuffers.read.height !== vpHeight) {
 
             // Cleanup old buffers
@@ -199,7 +216,7 @@ class ShaderManager {
                 this.cleanupFramebuffer(this.pingPongBuffers.write);
             }
 
-            // Create new buffers at the viewport size
+            // Create new buffers matching the viewport size
             this.pingPongBuffers.read = this.createFramebuffer(vpWidth, vpHeight);
             this.pingPongBuffers.write = this.createFramebuffer(vpWidth, vpHeight);
         }
@@ -207,13 +224,12 @@ class ShaderManager {
         // Bind write buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.pingPongBuffers.write.framebuffer);
 
-        // Use the same viewport settings for intermediate passes
-        gl.viewport(vpX, vpY, vpWidth, vpHeight);
+        // Use viewport dimensions exactly
+        gl.viewport(0, 0, vpWidth, vpHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         return true;
     }
-
     cleanupFramebuffer(fb) {
         if (fb.framebuffer) gl.deleteFramebuffer(fb.framebuffer);
         if (fb.texture) gl.deleteTexture(fb.texture);
@@ -227,9 +243,15 @@ class ShaderManager {
 
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        // Use RGBA8 format for better compatibility
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        // Use LINEAR filtering for better quality
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Use CLAMP_TO_EDGE to prevent sampling outside
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -237,8 +259,16 @@ class ShaderManager {
 
         const depthBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+
+        // Use DEPTH_COMPONENT16 for better performance
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+        // Check framebuffer status
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+            console.error('Framebuffer is not complete:', status);
+        }
 
         return {
             framebuffer,
@@ -248,33 +278,25 @@ class ShaderManager {
             height
         };
     }
-
     // New: End a render pass
     endPass() {
+        // Ensure we finish all GL commands before swapping
+        gl.finish();
+
         // Swap buffers
         const temp = this.pingPongBuffers.read;
         this.pingPongBuffers.read = this.pingPongBuffers.write;
         this.pingPongBuffers.write = temp;
+
+        // Unbind framebuffer to be safe
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
 
     setUniforms(program, camera, model, scene) {
-        // Get the material
-        const material = model.material;
-
-        // Basic transforms
         this.setTransformUniforms(program, camera, model);
-
-        // Lighting
+        this.setMaterialUniforms(program, model.material);
         this.setLightUniforms(program, scene);
-
-        // Material properties
-        this.setMaterialUniforms(program, material);
-
-        // Set material's custom uniforms
-        this.setCustomMaterialUniforms(program, material);
-
-        // Custom uniforms (like time)
         this.setCustomUniforms(program);
     }
 
@@ -282,98 +304,185 @@ class ShaderManager {
     setTransformUniforms(program, camera, model) {
         const {uniforms} = program;
 
-        gl.uniformMatrix4fv(uniforms.get('u_worldMatrix'), false, model.worldMatrix);
-        gl.uniformMatrix4fv(uniforms.get('u_viewMatrix'), false, camera.viewMatrix);
-        gl.uniformMatrix4fv(uniforms.get('u_projectionMatrix'), false, camera.projectionMatrix);
+        if (uniforms.get('u_worldMatrix')) {
+            gl.uniformMatrix4fv(uniforms.get('u_worldMatrix'), false, model.worldMatrix);
+        }
+        if (uniforms.get('u_viewMatrix')) {
+            gl.uniformMatrix4fv(uniforms.get('u_viewMatrix'), false, camera.viewMatrix);
+        }
+        if (uniforms.get('u_projectionMatrix')) {
+            gl.uniformMatrix4fv(uniforms.get('u_projectionMatrix'), false, camera.projectionMatrix);
+        }
 
-        const normalMatrix = mat4.create();
-        mat4.invert(normalMatrix, model.worldMatrix);
-        mat4.transpose(normalMatrix, normalMatrix);
-        gl.uniformMatrix4fv(uniforms.get('u_normalMatrix'), false, normalMatrix);
+        // Normal matrix
+        if (uniforms.get('u_normalMatrix')) {
+            const normalMatrix = mat4.create();
+            mat4.invert(normalMatrix, model.worldMatrix);
+            mat4.transpose(normalMatrix, normalMatrix);
+            gl.uniformMatrix4fv(uniforms.get('u_normalMatrix'), false, normalMatrix);
+        }
 
-        const cameraPos = new Float32Array(camera.getPositionWorld());
-        gl.uniform3fv(uniforms.get('u_cameraPosition'), cameraPos);
+        // Camera position for specular calculations
+        if (uniforms.get('u_cameraPosition')) {
+            const cameraPos = camera.getPositionWorld();
+            gl.uniform3fv(uniforms.get('u_cameraPosition'), cameraPos);
+        }
 
-        // Add viewport uniform
-        const vp = gl.getParameter(gl.VIEWPORT);
+        // Viewport for multi-pass effects
         if (uniforms.get('u_viewport')) {
+            const vp = gl.getParameter(gl.VIEWPORT);
             gl.uniform4fv(uniforms.get('u_viewport'), new Float32Array(vp));
         }
     }
+
     setLightUniforms(program, scene) {
         const {uniforms} = program;
 
-
         // Get all lights in the scene
         const lights = scene.findByType(Light);
-        const numLights = Math.min(lights.length, 8);
+        const numLights = Math.min(lights.length, 8); // Maximum 8 lights
 
-        if (uniforms.get('u_numLights')) {
+        if (uniforms.get('u_numLights') !== null) {
             gl.uniform1i(uniforms.get('u_numLights'), numLights);
         }
 
         // Set each light's uniforms
-        lights.slice(0, 8).forEach((light, index) => {
+        for (let i = 0; i < numLights; i++) {
+            const light = lights[i];
             const lightData = light.getShaderLight();
-            const prefix = `u_lights[${index}]`;
+            const prefix = `u_lights[${i}]`;
 
-            // Only set uniforms if they exist in the shader
-            if (uniforms.get(`${prefix}.type`)) {
+            // Set light type
+            if (uniforms.get(`${prefix}.type`) !== null) {
                 gl.uniform1i(uniforms.get(`${prefix}.type`), lightData.type);
             }
-            if (uniforms.get(`${prefix}.position`)) {
-                gl.uniform3fv(uniforms.get(`${prefix}.position`), new Float32Array(light.getPositionWorld()));
+
+            // Set light position in world space
+            if (uniforms.get(`${prefix}.position`) !== null) {
+                const worldPos = light.getPositionWorld();
+                gl.uniform3fv(uniforms.get(`${prefix}.position`), new Float32Array(worldPos));
             }
-            if (uniforms.get(`${prefix}.direction`)) {
-                gl.uniform3fv(uniforms.get(`${prefix}.direction`), new Float32Array(light.getForwardVector()));
+
+            // Set light direction in world space
+            if (uniforms.get(`${prefix}.direction`) !== null) {
+                const worldDir = light.getForwardVector();
+                gl.uniform3fv(uniforms.get(`${prefix}.direction`), new Float32Array(worldDir));
             }
-            if (uniforms.get(`${prefix}.color`)) {
+
+            // Set light color and intensity
+            if (uniforms.get(`${prefix}.color`) !== null) {
                 gl.uniform3fv(uniforms.get(`${prefix}.color`), new Float32Array(lightData.color));
             }
-            if (uniforms.get(`${prefix}.intensity`)) {
+            if (uniforms.get(`${prefix}.intensity`) !== null) {
                 gl.uniform1f(uniforms.get(`${prefix}.intensity`), lightData.intensity);
             }
-            if (uniforms.get(`${prefix}.range`)) {
-                gl.uniform1f(uniforms.get(`${prefix}.range`), lightData.range);
+            if (uniforms.get(`${prefix}.range`) !== null) {
+                gl.uniform1f(uniforms.get(`${prefix}.range`), lightData.range || 10.0);
             }
-        });
+        }
     }
-
     // In ShaderManager.js
     setMaterialUniforms(program, material) {
         const {uniforms} = program;
-        const currentPass = material._activePass;
+        if (!material) {
+            console.warn('No material provided to setMaterialUniforms');
+            return;
+        }
 
-        // Handle previous pass texture if we're not in the first pass
+        // Multi-pass handling
+        const currentPass = material._activePass || 0;
+
+        // Handle previous pass texture
         if (currentPass > 0 && this.pingPongBuffers.read) {
-            // Bind read buffer's texture
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.pingPongBuffers.read.texture);
-
-            if (uniforms.get('u_previousPass') !== null) {
+            if (uniforms.get('u_previousPass')) {
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, this.pingPongBuffers.read.texture);
                 gl.uniform1i(uniforms.get('u_previousPass'), 0);
             }
-            if (uniforms.get('u_hasPreviousPass') !== null) {
+            if (uniforms.get('u_hasPreviousPass')) {
                 gl.uniform1i(uniforms.get('u_hasPreviousPass'), 1);
             }
-        } else {
-            if (uniforms.get('u_hasPreviousPass') !== null) {
-                gl.uniform1i(uniforms.get('u_hasPreviousPass'), 0);
+
+            // Set viewport uniform to match the actual rendering viewport
+            if (uniforms.get('u_viewport')) {
+                const vp = gl.getParameter(gl.VIEWPORT);
+                gl.uniform4fv(uniforms.get('u_viewport'), new Float32Array([0, 0, vp[2], vp[3]]));
+            }
+        } else if (uniforms.get('u_hasPreviousPass')) {
+            gl.uniform1i(uniforms.get('u_hasPreviousPass'), 0);
+        }
+
+        // Set PBR material properties with safe defaults
+        const baseColorFactor = material.baseColorFactor || [1.0, 1.0, 1.0, 1.0];
+        const metallicFactor = material.metallicFactor ?? 1.0;
+        const roughnessFactor = material.roughnessFactor ?? 1.0;
+        const emissiveFactor = material.emissiveFactor || [0.0, 0.0, 0.0];
+        const baseColor = material.baseColor || [1.0, 1.0, 1.0];
+
+        // Set uniforms with validation
+        if (uniforms.get('u_BaseColorFactor')) {
+            gl.uniform4fv(uniforms.get('u_BaseColorFactor'), new Float32Array(baseColorFactor));
+        }
+        if (uniforms.get('u_baseColor')) {
+            gl.uniform3fv(uniforms.get('u_baseColor'), new Float32Array(baseColor));
+        }
+        if (uniforms.get('u_MetallicFactor')) {
+            gl.uniform1f(uniforms.get('u_MetallicFactor'), metallicFactor);
+        }
+        if (uniforms.get('u_RoughnessFactor')) {
+            gl.uniform1f(uniforms.get('u_RoughnessFactor'), roughnessFactor);
+        }
+        if (uniforms.get('u_EmissiveFactor')) {
+            gl.uniform3fv(uniforms.get('u_EmissiveFactor'), new Float32Array(emissiveFactor));
+        }
+
+        // Handle textures
+        let textureUnit = 1; // Start at 1 since 0 is used for previous pass
+
+        // Base color / Albedo texture
+        if (material.baseColorMap || material.albedoMap) {
+            const texture = material.baseColorMap || material.albedoMap;
+            if (uniforms.get('u_BaseColorMap')) {
+                gl.activeTexture(gl.TEXTURE0 + textureUnit);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.uniform1i(uniforms.get('u_BaseColorMap'), textureUnit);
+                gl.uniform1i(uniforms.get('u_HasBaseColorMap'), 1);
+                textureUnit++;
+            }
+        } else if (uniforms.get('u_HasBaseColorMap')) {
+            gl.uniform1i(uniforms.get('u_HasBaseColorMap'), 0);
+        }
+
+        // Legacy texture support
+        if (material.albedoMap && uniforms.get('u_mainTexture')) {
+            gl.activeTexture(gl.TEXTURE0 + textureUnit);
+            gl.bindTexture(gl.TEXTURE_2D, material.albedoMap);
+            gl.uniform1i(uniforms.get('u_mainTexture'), textureUnit);
+            gl.uniform1i(uniforms.get('u_useTexture'), 1);
+            textureUnit++;
+        } else if (uniforms.get('u_useTexture')) {
+            gl.uniform1i(uniforms.get('u_useTexture'), 0);
+        }
+
+        // Custom uniforms from material
+        if (material._uniforms) {
+            for (const [name, value] of material._uniforms) {
+                const location = uniforms.get(name);
+                if (location !== null && location !== undefined) {
+                    this.setUniformValue(location, value);
+                }
             }
         }
 
-        // Regular material uniforms
-        gl.uniform3fv(uniforms.get('u_baseColor'), material.baseColor);
-        gl.uniform1f(uniforms.get('u_metallic'), material.metallic);
-        gl.uniform1f(uniforms.get('u_roughness'), material.roughness);
-
-        if (material.albedoMap) {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, material.albedoMap);
-            gl.uniform1i(uniforms.get('u_mainTexture'), 1);
-            gl.uniform1i(uniforms.get('u_useTexture'), 1);
-        } else {
-            gl.uniform1i(uniforms.get('u_useTexture'), 0);
+        // Pass-specific uniforms
+        const currentPassData = material._passes[currentPass];
+        if (currentPassData && currentPassData.uniforms) {
+            for (const [name, value] of currentPassData.uniforms) {
+                const location = uniforms.get(name);
+                if (location !== null && location !== undefined) {
+                    this.setUniformValue(location, value);
+                }
+            }
         }
     }
 
@@ -403,35 +512,47 @@ class ShaderManager {
 
 
     setUniformValue(location, value) {
-        if (Array.isArray(value)) {
-            switch (value.length) {
-                case 2:
-                    gl.uniform2fv(location, value);
-                    break;
-                case 3:
-                    gl.uniform3fv(location, value);
-                    break;
-                case 4:
-                    gl.uniform4fv(location, value);
-                    break;
-                case 9:
-                    gl.uniformMatrix3fv(location, false, value);
-                    break;
-                case 16:
-                    gl.uniformMatrix4fv(location, false, value);
-                    break;
+        if (value === null || value === undefined) {
+            console.warn('Attempted to set uniform with null or undefined value');
+            return;
+        }
+
+        try {
+            if (Array.isArray(value) || value instanceof Float32Array) {
+                const array = value instanceof Float32Array ? value : new Float32Array(value);
+                switch (array.length) {
+                    case 2:
+                        gl.uniform2fv(location, array);
+                        break;
+                    case 3:
+                        gl.uniform3fv(location, array);
+                        break;
+                    case 4:
+                        gl.uniform4fv(location, array);
+                        break;
+                    case 9:
+                        gl.uniformMatrix3fv(location, false, array);
+                        break;
+                    case 16:
+                        gl.uniformMatrix4fv(location, false, array);
+                        break;
+                    default:
+                        console.warn(`Unexpected uniform array length: ${array.length}`);
+                }
+            } else if (typeof value === 'number') {
+                gl.uniform1f(location, value);
+            } else if (typeof value === 'boolean') {
+                gl.uniform1i(location, value ? 1 : 0);
             }
-        } else if (typeof value === 'number') {
-            gl.uniform1f(location, value);
-        } else if (typeof value === 'boolean') {
-            gl.uniform1i(location, value ? 1 : 0);
+        } catch (error) {
+            console.error('Error setting uniform value:', error);
+            console.debug('Location:', location, 'Value:', value);
         }
     }
 
 
     setCustomUniforms(program) {
         const {uniforms} = program;
-
 
         if (uniforms.get('u_time')) {
             gl.uniform1f(uniforms.get('u_time'), performance.now() / 1000.0);

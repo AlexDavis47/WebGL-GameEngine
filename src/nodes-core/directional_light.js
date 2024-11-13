@@ -1,10 +1,10 @@
-// nodes-core/point_light.js
+
 import Light, { LightType } from './light.js';
 
-class PointLight extends Light {
+class DirectionalLight extends Light {
     constructor() {
         super();
-        this.type = LightType.POINT;
+        this.type = LightType.DIRECTIONAL;
         this.range = 10.0; // Default range
     }
 
@@ -24,4 +24,4 @@ class PointLight extends Light {
     }
 }
 
-export default PointLight;
+export default DirectionalLight;

@@ -62,10 +62,9 @@ class Gun extends Model3D {
             maxPitch: 1.2
         });
 
-
-
         await this.loadModel('./assets/models/gun/gun.obj');
-        await this.setShaderFromFile('./assets/shaders/phong.glsl');
+        await this.addShaderPass('./assets/shaders/texture.glsl');
+        await this.addShaderPass('./assets/shaders/toon.glsl');
     }
 
     update(deltaTime) {
@@ -149,11 +148,11 @@ class Gun extends Model3D {
         this._rotationVelocity.x += this._config.RECOIL.IMMEDIATE;
         this._targetRotation.x += this._config.RECOIL.SUSTAINED;
 
-        const bullet = new Bullet();
-
         // Get gun's world position and forward direction
         const worldPos = this.getPositionWorld();
         const forward = this.getForwardVector();
+
+        const bullet = new Bullet();
 
         // Now set its position and orientation
         bullet.setPositionWorld(worldPos[0], worldPos[1], worldPos[2]);
@@ -168,8 +167,6 @@ class Gun extends Model3D {
         bullet.translate(0.1, 0.15, -0.8);
 
         this.getRootNode().addChild(bullet);
-
-
         this.playSound();
     }
 

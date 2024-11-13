@@ -11,8 +11,8 @@ class AudioPlayer extends Node3D {
         this._isPlaying = false;
         this._autoplay = false;
         this._volume = 1.0;
-        this._minPitch = 0.9;  // Minimum pitch
-        this._maxPitch = 1.1;  // Maximum pitch
+        this._minPitch = 1.0;  // Minimum pitch
+        this._maxPitch = 1.0;  // Maximum pitch
     }
 
     async loadSound(url, options = {}) {
@@ -78,6 +78,12 @@ class AudioPlayer extends Node3D {
     setPitchRange(minPitch, maxPitch) {
         this._minPitch = minPitch;
         this._maxPitch = maxPitch;
+        return this;
+    }
+
+    setPitch(pitch) {
+        this._minPitch = pitch;
+        this._maxPitch = pitch;
         return this;
     }
 

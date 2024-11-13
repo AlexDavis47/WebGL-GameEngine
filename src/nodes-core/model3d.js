@@ -22,6 +22,7 @@ class Model3D extends Node3D {
         // Create default material
         this._material = new Material3D(this.name + "_Material");
     }
+
     async loadModel(path, options = {}) {
         this._useTextures = options.useTextures ?? this._useTextures;
         this._basePath = options.basePath ?? this.extractPath(path);
@@ -30,8 +31,10 @@ class Model3D extends Node3D {
 
         try {
             if (isGLTF) {
+                console.log('Loading GLTF model:', path);
                 await this._loadGLTF(path);
             } else {
+                console.log('Loading OBJ model:', path);
                 await this._loadOBJ(path);
             }
         } catch (error) {
@@ -61,29 +64,31 @@ class Model3D extends Node3D {
 
     async _loadGLTF(path) {
         const model = await GLTFLoader.load(path);
-
         this._submeshes = [];
 
         for (const mesh of model.meshes) {
+            if (!mesh.positions.length) continue;
+
             const submesh = {
                 vao: null,
                 indexBuffer: null,
-                indexCount: mesh.indices.length,
+                indexCount: mesh.indices.length || 0,
                 material: new Material3D(this.name + "_Material_" + this._submeshes.length)
             };
 
+            // Create and bind VAO
             submesh.vao = gl.createVertexArray();
             gl.bindVertexArray(submesh.vao);
 
-            if (mesh.positions.length > 0) {
-                const positionBuffer = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.positions), gl.STATIC_DRAW);
-                gl.enableVertexAttribArray(0);
-                gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-            }
+            // Position buffer (required)
+            const positionBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.positions), gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-            if (mesh.normals.length > 0) {
+            // Normal buffer (optional)
+            if (mesh.normals && mesh.normals.length > 0) {
                 const normalBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.normals), gl.STATIC_DRAW);
@@ -91,7 +96,8 @@ class Model3D extends Node3D {
                 gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
             }
 
-            if (mesh.texcoords.length > 0) {
+            // UV buffer (optional)
+            if (mesh.texcoords && mesh.texcoords.length > 0) {
                 const uvBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.texcoords), gl.STATIC_DRAW);
@@ -99,34 +105,53 @@ class Model3D extends Node3D {
                 gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
             }
 
-            submesh.indexBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, submesh.indexBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mesh.indices), gl.STATIC_DRAW);
+            // Index buffer (required)
+            if (mesh.indices && mesh.indices.length > 0) {
+                submesh.indexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, submesh.indexBuffer);
+                gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mesh.indices), gl.STATIC_DRAW);
+                submesh.indexCount = mesh.indices.length;
+            } else {
+                // If no indices, create them
+                const indices = new Array(mesh.positions.length / 3);
+                for (let i = 0; i < indices.length; i++) indices[i] = i;
+                submesh.indexBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, submesh.indexBuffer);
+                gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+                submesh.indexCount = indices.length;
+            }
 
+            // Set up material properties
             if (mesh.material) {
+                submesh.material.updateFromGLTF(mesh.material);
                 if (mesh.material.baseColorTexture) {
                     submesh.material.setTexture('albedo', mesh.material.baseColorTexture);
                 }
-                if (mesh.material.baseColorFactor) {
-                    submesh.material.baseColor = mesh.material.baseColorFactor.slice(0, 3);
-                }
-                submesh.material.metallicFactor = mesh.material.metallicFactor;
-                submesh.material.roughnessFactor = mesh.material.roughnessFactor;
+                // Initialize material passes
+                await submesh.material.initializePasses();
             }
 
             this._submeshes.push(submesh);
         }
 
+        // Cleanup
         gl.bindVertexArray(null);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
+        // If only one submesh, use it as the main mesh
         if (this._submeshes.length === 1) {
             this._vao = this._submeshes[0].vao;
             this._indexBuffer = this._submeshes[0].indexBuffer;
             this._indexCount = this._submeshes[0].indexCount;
             this._material = this._submeshes[0].material;
         }
+
+        // Debug info
+        console.log(`Loaded GLTF model with ${this._submeshes.length} submeshes`);
+        this._submeshes.forEach((submesh, i) => {
+            console.log(`Submesh ${i}: ${submesh.indexCount} indices`);
+        });
     }
 
     extractPath(fileUrl) {
@@ -212,108 +237,81 @@ class Model3D extends Node3D {
         await super.ready();
     }
 
-    render() {
+    async render() {
         if (!this.enabled) return;
 
         const scene = this.getRootNode();
 
+        // Debug check
+        if (this._submeshes.length === 0 && !this._vao) {
+            return;
+        }
+
+        // Ensure the material is initialized
+        if (this._material && !this._material._initialized) {
+            await this._material.initializePasses();
+        }
+
         if (this._submeshes.length > 0) {
             // GLTF rendering path
             for (const submesh of this._submeshes) {
-                if (submesh.material._passes.length > 0) {
-                    for (let i = 0; i < submesh.material._passes.length; i++) {
-                        submesh.material._activePass = i;
-                        const isLastPass = i === submesh.material._passes.length - 1;
+                if (!submesh.vao || submesh.indexCount === 0) continue;
 
-                        if (!isLastPass) {
-                            if (!shaderManager.beginPass(i, submesh.material)) continue;
-                        } else {
-                            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                        }
+                const program = submesh.material.getActiveProgram();
+                if (!program) continue;
 
-                        const program = submesh.material._passes[i].program;
-                        gl.useProgram(program.program);
-                        shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+                gl.useProgram(program.program);
+                shaderManager.setUniforms(program, scene.activeCamera, this, scene);
 
-                        gl.bindVertexArray(submesh.vao);
-                        gl.drawElements(gl.TRIANGLES, submesh.indexCount, gl.UNSIGNED_SHORT, 0);
-                        gl.bindVertexArray(null);
-
-                        if (!isLastPass) {
-                            shaderManager.endPass();
-                        }
-                    }
-                    submesh.material._activePass = 0;
-                } else {
-                    const program = submesh.material.getShaderProgram() || shaderManager.getDefaultProgram();
-                    gl.useProgram(program.program);
-                    shaderManager.setUniforms(program, scene.activeCamera, this, scene);
-
-                    gl.bindVertexArray(submesh.vao);
-                    gl.drawElements(gl.TRIANGLES, submesh.indexCount, gl.UNSIGNED_SHORT, 0);
-                    gl.bindVertexArray(null);
-                }
+                gl.bindVertexArray(submesh.vao);
+                gl.drawElements(gl.TRIANGLES, submesh.indexCount, gl.UNSIGNED_SHORT, 0);
+                gl.bindVertexArray(null);
             }
-        } else {
-            // OBJ rendering path
-            if (this._vao) {
-                if (this._material._passes.length > 0) {
-                    // Execute each pass
-                    for (let i = 0; i < this._material._passes.length; i++) {
-                        // Set the current pass
-                        this._material._activePass = i;
+        } else if (this._vao) {
+            const program = this._material.getActiveProgram();
+            if (!program) return;
 
-                        // Check if this is the final pass
-                        const isLastPass = i === this._material._passes.length - 1;
+            if (this._material._passes.length > 1) {
+                // Multi-pass rendering
+                for (let i = 0; i < this._material._passes.length; i++) {
+                    this._material._activePass = i;
+                    const currentPass = this._material._passes[i];
+                    const passProgram = currentPass.program;
+                    if (!passProgram) continue;
 
-                        if (isLastPass) {
-                            // Final pass renders to screen
-                            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                        } else {
-                            // Begin the pass using ShaderManager for intermediate passes
-                            if (!shaderManager.beginPass(i, this._material)) {
-                                continue;
-                            }
-                        }
+                    const isLastPass = i === this._material._passes.length - 1;
 
-                        // Get the program for this pass
-                        const program = this._material._passes[i].program;
-                        gl.useProgram(program.program);
-
-                        // Set all uniforms for this pass
-                        shaderManager.setUniforms(program, scene.activeCamera, this, scene);
-
-                        // Draw
-                        gl.bindVertexArray(this._vao);
-                        gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
-                        gl.bindVertexArray(null);
-
-                        // Only end the pass if it's not the final pass
-                        if (!isLastPass) {
-                            shaderManager.endPass();
-                        }
+                    if (!isLastPass) {
+                        if (!shaderManager.beginPass(i, this._material)) continue;
                     }
 
-                    // Reset active pass
-                    this._material._activePass = 0;
-                } else {
-                    // Original single-pass rendering
-                    const program = this._material.getShaderProgram() || shaderManager.getDefaultProgram();
-                    gl.useProgram(program.program);
-
-                    shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+                    gl.useProgram(passProgram.program);
+                    shaderManager.setUniforms(passProgram, scene.activeCamera, this, scene);
 
                     gl.bindVertexArray(this._vao);
                     gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
                     gl.bindVertexArray(null);
+
+                    if (!isLastPass) {
+                        shaderManager.endPass();
+                    }
                 }
+                this._material._activePass = 0;
+            } else {
+                // Single-pass rendering
+                gl.useProgram(program.program);
+                shaderManager.setUniforms(program, scene.activeCamera, this, scene);
+
+                gl.bindVertexArray(this._vao);
+                gl.drawElements(gl.TRIANGLES, this._indexCount, gl.UNSIGNED_SHORT, 0);
+                gl.bindVertexArray(null);
             }
         }
 
         // Render children
         for (const child of this.children) {
             if (child.render) {
-                child.render();
+                await child.render();
             }
         }
     }
@@ -361,11 +359,6 @@ class Model3D extends Node3D {
 
     setBaseColor(r, g, b) {
         this._material.baseColor = [r, g, b];
-        return this;
-    }
-
-    async setShaderFromFile(shaderPath) {
-        await this._material.setShader(shaderPath);
         return this;
     }
 

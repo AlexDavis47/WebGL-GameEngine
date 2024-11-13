@@ -13,7 +13,8 @@ class Bullet extends Model3D {
     async init() {
         await super.init();
         await this.loadModel('./assets/models/bullet/bullet.obj');
-        await this.setShaderFromFile('./assets/shaders/phong.glsl');
+        await this.addShaderPass('./assets/shaders/texture.glsl');
+        await this.addShaderPass('./assets/shaders/phong.glsl');
         this.setScale(0.1, 0.1, 0.1);
     }
 
@@ -38,8 +39,6 @@ class Bullet extends Model3D {
         const movement = forward.map(component => component * this._speed * deltaTime);
         this.translateWorld(...movement); // Use world-space translation for consistent movement
     }
-
-
 }
 
 export default Bullet;

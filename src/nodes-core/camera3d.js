@@ -38,13 +38,6 @@ class Camera3D extends Node3D {
     updateProjectionMatrix() {
         if (this._isPerspective) {
             const fovRad = glMatrix.toRadian(this._fov);
-            console.log('Updating projection matrix with:', {
-                fovDegrees: this._fov,
-                fovRadians: fovRad,
-                aspect: this._aspect,
-                near: this._near,
-                far: this._far
-            });
 
             mat4.perspective(
                 this._projectionMatrix,
@@ -105,7 +98,6 @@ class Camera3D extends Node3D {
 
     setAspectRatio(aspect) {
         if (this._aspect !== aspect) {
-            console.log('Camera: Setting aspect ratio to:', aspect);
             this._aspect = aspect;
             this._projectionDirty = true;
             this.updateProjectionMatrix(); // Force immediate update

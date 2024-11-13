@@ -6,3 +6,4 @@ export default defineConfig({
     },
     assetsInclude: ['**/*.glsl', '**/*.obj', "**/*.mtl", '**/*.mp3', "**/*.wav", "**/*.png", "**/*.jpg", "**/*.jpeg"],
 });
+

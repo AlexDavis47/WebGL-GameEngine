@@ -11,6 +11,8 @@ import StaticBody3D from "./nodes-core/static_body_3d.js";
 import AudioPlayer from "./nodes-core/audio_player.js";
 import AudioPlayer3D from "./nodes-core/audio_player_3d.js";
 import GLTFLoader from "./util/GLTF_loader.js";
+import AmbientLight from "./nodes-core/ambient_light.js";
+import Skybox from "./nodes-core/skybox.js";
 import Radio from "./nodes-custom/radio.js";
 
 class TestScene extends Scene {
@@ -21,7 +23,6 @@ class TestScene extends Scene {
     }
 
     async init() {
-        console.log('Initializing test scene...');
         physicsManager.setGravity(0, -9.81, 0);
 
 
@@ -32,32 +33,43 @@ class TestScene extends Scene {
         this.setActiveCamera(player._camera);
         player.setPosition(0, 5, 0);
 
-        for (let i = 0; i < 5; i++) {
-            for (let j = 0; j < 5; j++) {
-                const ocean = new Model3D();
-                await ocean.loadModel('./assets/models/ocean/ocean.obj');
-                await ocean.setShaderFromFile('./assets/shaders/water.glsl');
-                ocean.setPosition(i * 500 - (500 * 2.5), -2, j * 500 - (500 * 2.5));
-                ocean.setScale(10, 10, 10);
-                this.addChild(ocean);
-            }
-        }
+        const ocean = new Model3D();
+        await ocean.loadModel('./assets/models/ocean/ocean.obj');
+        await ocean.addShaderPass('./assets/shaders/water.glsl');
+        ocean.setScale(10, 10, 10);
+        this.addChild(ocean);
+
+
+        const ambientLight = new AmbientLight();
+        ambientLight.setIntensity(0.1);
+        this.addChild(ambientLight);
+
+        // Testing GLTF loader
+        // const microphone = new Model3D();
+        // await microphone.loadModel('./assets/models/microphone_glb/mic.glb');
+        // await microphone.addShaderPass('./assets/shaders/texture.glsl');
+        // microphone.setPosition(0, 6, 0);
+        // this.addChild(microphone);
+
 
         const sun = new PointLight();
         sun.setPosition(0, 1000, 1000)
         sun.setRange(10000);
-        sun.setIntensity(1.0);
+        sun.setIntensity(1);
 
         this.addChild(sun);
 
         const radio = new Radio();
         radio.setScale(3, 3, 3);
         radio.setPosition(5, 5, 3);
+        await radio.addShaderPass('./assets/shaders/texture.glsl');
+        await radio.addShaderPass('./assets/shaders/phong.glsl');
         this.addChild(radio);
 
         const tree = new Model3D();
         await tree.loadModel('./assets/models/tree/palm.obj');
-        await tree.setShaderFromFile('./assets/shaders/phong.glsl');
+        await tree.addShaderPass('./assets/shaders/texture.glsl');
+        await tree.addShaderPass('./assets/shaders/phong.glsl');
         tree.setScale(3, 3, 3);
         tree.setPosition(10, 0, 6);
         this.addChild(tree);
@@ -70,30 +82,40 @@ class TestScene extends Scene {
         // Island model
         const islandVisual = new Model3D();
         await islandVisual.loadModel('./assets/models/island/island.obj');
-        await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
+        await islandVisual.addShaderPass('./assets/shaders/texture.glsl');
+        await islandVisual.addShaderPass('./assets/shaders/phong.glsl');
 
         island.addChild(islandVisual);
 
-        for (let i = 0; i < 25; i++) {
-            // Island static body
-            const island = new StaticBody3D();
-            await island.setCollisionFromOBJ('./assets/models/island/island.obj');
-            island.setPosition(Math.random() * 200 - 100, 0, Math.random() * 200 - 100);
-            island.setRotation(0, Math.random() * Math.PI * 2, 0);
 
-            this.addChild(island);
-            // Island model
-            const islandVisual = new Model3D();
-            await islandVisual.loadModel('./assets/models/island/island.obj');
-            await islandVisual.setShaderFromFile('./assets/shaders/phong.glsl');
-
-            // move the island down based on it's distance from the center
-            const distance = Math.sqrt(island.getPositionWorld()[0] ** 2 + island.getPositionWorld()[2] ** 2);
-            island.setPositionY(-distance / 20);
-
-
-            island.addChild(islandVisual);
+        // Create seagull ambiance
+        for (let i = 0; i < 10; i++) {
+            const audioPlayer = new AudioPlayer3D();
+            await audioPlayer.loadSound('./assets/ambience/seagulls.mp3', {
+                loop: true
+            });
+            audioPlayer.setPosition(Math.random() * 100 - 50, 10, Math.random() * 100 - 50);
+            audioPlayer.setPitchRange(0.6, 1.7);
+            audioPlayer.play();
         }
+        // Create and set up skybox
+        const skybox = new Skybox();
+        await skybox.addShaderPass('./assets/shaders/texture.glsl');
+
+        // Load cubemap textures
+        await skybox.loadCubemap([
+            './assets/textures/skybox/px.png',  // positive X
+            './assets/textures/skybox/nx.png',   // negative X
+            './assets/textures/skybox/py.png',    // positive Y
+            './assets/textures/skybox/ny.png', // negative Y
+            './assets/textures/skybox/pz.png',  // positive Z
+            './assets/textures/skybox/nz.png'    // negative Z
+        ]);
+
+        // Add to scene
+        this.addChild(skybox);
+
+
 
         // Initialize the scene hierarchy
         await super.init();
@@ -111,13 +133,10 @@ class TestScene extends Scene {
         const boxVisual = new Model3D();
         await boxVisual.loadModel('./assets/models/test_cube/cube.obj');
         await boxVisual.addShaderPass('./assets/shaders/phong.glsl');
-        await boxVisual.addShaderPass('./assets/shaders/red.glsl');
+        await boxVisual.addShaderPass('./assets/shaders/water.glsl');
         testBox.addChild(boxVisual);
 
-        const audioPlayer = new AudioPlayer3D();
-        await audioPlayer.loadSound('./assets/ambience/seagulls.mp3', {
-            loop: true
-        });
+
         testBox.addChild(audioPlayer);
         audioPlayer.play();
     }
