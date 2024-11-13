@@ -14,6 +14,7 @@ import GLTFLoader from "./util/GLTF_loader.js";
 import AmbientLight from "./nodes-core/ambient_light.js";
 import Skybox from "./nodes-core/skybox.js";
 import Radio from "./nodes-custom/radio.js";
+import PalmTree from "./nodes-custom/palm_tree.js";
 
 class TestScene extends Scene {
     constructor() {
@@ -81,13 +82,22 @@ class TestScene extends Scene {
 
 
 
-        const tree = new Model3D();
-        await tree.loadModel('./assets/models/tree/palm.obj');
-        await tree.addShaderPass('./assets/shaders/texture.glsl');
-        await tree.addShaderPass('./assets/shaders/phong.glsl');
-        tree.setScale(3, 3, 3);
-        tree.setPosition(10, 0, 6);
-        this.addChild(tree);
+        // const tree = new Model3D();
+        // await tree.loadModel('./assets/models/tree/palm.obj');
+        // await tree.addShaderPass('./assets/shaders/texture.glsl');
+        // await tree.addShaderPass('./assets/shaders/phong.glsl');
+        // tree.setScale(3, 3, 3);
+        // tree.setPosition(10, 0, 6);
+        // this.addChild(tree);
+
+        for (let i = 0; i < 5; i++) {
+            const tree = new PalmTree();
+            tree.setPosition(Math.random() * 30 - 15, 3, Math.random() * 30 - 15);
+            tree.setRotation(Math.random() * 12, Math.random() * 360, Math.random() * 12);
+            this.addChild(tree);
+        }
+
+
 
         const island = new StaticBody3D();
         await island.setCollisionFromOBJ('./assets/models/island/island.obj');
