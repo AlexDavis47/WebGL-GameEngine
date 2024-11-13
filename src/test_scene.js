@@ -62,8 +62,7 @@ class TestScene extends Scene {
         const radio = new Radio();
         radio.setScale(3, 3, 3);
         radio.setPosition(5, 5, 3);
-        await radio.addShaderPass('./assets/shaders/texture.glsl');
-        await radio.addShaderPass('./assets/shaders/phong.glsl');
+
         this.addChild(radio);
 
         const tree = new Model3D();
@@ -79,6 +78,7 @@ class TestScene extends Scene {
         island.setPosition(0, 0, 0);
 
         this.addChild(island);
+
         // Island model
         const islandVisual = new Model3D();
         await islandVisual.loadModel('./assets/models/island/island.obj');
@@ -127,7 +127,6 @@ class TestScene extends Scene {
         testBox.setMass(1);
         testBox.setPosition(Math.random() * 10 - 5, 10, Math.random() * 10 - 5);
 
-
         this.addChild(testBox);
 
         const boxVisual = new Model3D();
@@ -135,10 +134,6 @@ class TestScene extends Scene {
         await boxVisual.addShaderPass('./assets/shaders/phong.glsl');
         await boxVisual.addShaderPass('./assets/shaders/water.glsl');
         testBox.addChild(boxVisual);
-
-
-        testBox.addChild(audioPlayer);
-        audioPlayer.play();
     }
 
     update(deltaTime) {

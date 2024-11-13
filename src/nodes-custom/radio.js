@@ -17,14 +17,14 @@ class Radio extends Model3D {
 
     async init() {
         await this.loadModel('./assets/models/radio/radio_obj.obj');
-        await this.setShaderFromFile('./assets/shaders/phong.glsl');
+        await this.addShaderPass('./assets/shaders/texture.glsl');
+        await this.addShaderPass('./assets/shaders/phong.glsl');
         this.setScale(3, 3, 3);
         this.setPosition(5, 5, 3);
 
         // Set up the static collision body
         this.radioCollision = new StaticBody3D();
         await this.radioCollision.setCollisionFromOBJ('./assets/models/radio/radio_obj.obj');
-        this.radioCollision.setPosition(5, 5, 3);
 
         // Add the audio player with the initial track
         this.radioSong = new AudioPlayer3D();
